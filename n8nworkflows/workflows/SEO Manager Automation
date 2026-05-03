@@ -1,0 +1,441 @@
+{
+  "name": "SEO Manager Automation",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "chat-webhook",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "3237b5a1-3033-41a8-b25c-4b738020d797",
+      "name": "When Chat Message Received",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        -780,
+        1280
+      ],
+      "webhookId": "dde0c8d6-cbc8-4ca8-90ad-63e9639b7a42"
+    },
+    {
+      "parameters": {
+        "url": "=https://api.searchapi.com/v1/search",
+        "options": {}
+      },
+      "id": "0ea5121d-5a71-4f4d-bd1b-7e994c84fa0f",
+      "name": "Get Top 3 SERP Results",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        -600,
+        1280
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Process and structure the SERP results\nconst results = $input.all()[0].json.results || [];\n\nreturn results.map(result => {\n  return {\n    title: result.title,\n    url: result.url,\n    snippet: result.snippet,\n    position: result.position\n  };\n});"
+      },
+      "id": "c9a9eb97-c296-4f8b-9bf9-06ea3b0dda66",
+      "name": "Structure Results",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        -400,
+        1280
+      ]
+    },
+    {
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      },
+      "id": "1ce2e95f-b6ff-4c62-b56a-1b7dffc6f6cd",
+      "name": "Loop Over Items",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 1,
+      "position": [
+        -400,
+        540
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "f0d3bb87-d317-43ab-ae1b-668882b3910f",
+      "name": "Done",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        240,
+        1280
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Get concatenated content from previous nodes\nconst items = $input.all();\nlet combinedContent = \"\";\n\nitems.forEach(item => {\n  if (item.json.content) {\n    combinedContent += `${item.json.content}\\n\\n`;\n  }\n});\n\nreturn { combinedContent };"
+      },
+      "id": "bfc5104c-def8-4ac4-b9fb-404cdeee229d",
+      "name": "Get Concatenated Content",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        -80,
+        540
+      ]
+    },
+    {
+      "parameters": {
+        "options": {},
+        "requestOptions": {}
+      },
+      "id": "01e49c9e-5979-4505-b7f6-2b3ac86bd5e7",
+      "name": "Data Extract And Summarizer",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1,
+      "position": [
+        260,
+        540
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "IZqhb364ovMUYOYl",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "id": "c9d17c1f-1466-4c58-a253-cb25b16dd3fd",
+      "name": "Loop",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        -800,
+        540
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Concatenate content\nconst items = $input.all();\nlet combinedContent = \"\";\n\nitems.forEach(item => {\n  if (item.json.content) {\n    combinedContent += `${item.json.content}\\n\\n`;\n  }\n});\n\nreturn { combinedContent };"
+      },
+      "id": "ce053e8c-b17e-4f4f-a29f-533063374ebd",
+      "name": "Concatenate Content",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        -400,
+        940
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Extract and clean content\nconst html = $input.all()[0].json.data || '';\n\n// Simple HTML cleaning (a more robust solution would use cheerio)\nlet cleanContent = html\n  .replace(/<script\\b[^<]*(?:(?!<\\/script>)<[^<]*)*<\\/script>/gi, '')\n  .replace(/<style\\b[^<]*(?:(?!<\\/style>)<[^<]*)*<\\/style>/gi, '')\n  .replace(/<[^>]+>/g, ' ')\n  .replace(/\\s+/g, ' ')\n  .trim();\n\nreturn { content: cleanContent.substring(0, 5000) };"
+      },
+      "id": "2fcb6c10-4a7f-4aaf-9906-ebcd06d2d5a8",
+      "name": "Extract And Clean Content/Code",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        -780,
+        940
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{$json.url}}",
+        "options": {}
+      },
+      "id": "2980394e-501d-447a-80ab-67d7d20a2ba0",
+      "name": "Fetch HTML From URLs",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        -600,
+        700
+      ]
+    },
+    {
+      "parameters": {
+        "options": {},
+        "requestOptions": {}
+      },
+      "id": "62b7a774-bfbf-4cf4-91cc-99c3ce9f08d0",
+      "name": "SEO Copywriter Agent",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1,
+      "position": [
+        260,
+        860
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "IZqhb364ovMUYOYl",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {},
+        "requestOptions": {}
+      },
+      "id": "7fef3370-c834-42e5-9d0f-ce539db69f0b",
+      "name": "Humanize Text Agent",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1,
+      "position": [
+        -80,
+        800
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "IZqhb364ovMUYOYl",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "__CUSTOM_API_CALL__"
+      },
+      "id": "2c52b828-b9c8-49aa-8fd4-9403a33e51f8",
+      "name": "Google Docs",
+      "type": "n8n-nodes-base.googleDocs",
+      "typeVersion": 1,
+      "position": [
+        -100,
+        1280
+      ],
+      "credentials": {
+        "googleDocsOAuth2Api": {
+          "id": "4jZwAoJhtMZNSv6Z",
+          "name": "Google Docs account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## Trigger & SERP Search",
+        "height": 380,
+        "width": 680,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -880,
+        1140
+      ],
+      "id": "4623767e-06aa-48ff-b02d-c475803cda78",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "##  Loop Through URLs\n",
+        "height": 660,
+        "width": 680,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -880,
+        460
+      ],
+      "id": "ff3b35ac-2541-4a6f-8bf2-ccb87820e4b7",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "## AI Agents for Writing",
+        "height": 660,
+        "width": 650
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -180,
+        460
+      ],
+      "id": "21421523-08d0-4b47-8a39-d058859f0c87",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "content": "## Output to Google Docs",
+        "height": 380,
+        "width": 640,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -180,
+        1140
+      ],
+      "id": "3664d51c-7f18-4e9a-a57d-730db647daac",
+      "name": "Sticky Note3"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Data Extract And Summarizer": {
+      "main": [
+        [
+          {
+            "node": "SEO Copywriter Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SEO Copywriter Agent": {
+      "main": [
+        [
+          {
+            "node": "Humanize Text Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Humanize Text Agent": {
+      "main": [
+        [
+          {
+            "node": "Google Docs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structure Results": {
+      "main": [
+        [
+          {
+            "node": "Loop",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [
+          {
+            "node": "Fetch HTML From URLs",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get Concatenated Content",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch HTML From URLs": {
+      "main": [
+        [
+          {
+            "node": "Extract And Clean Content/Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract And Clean Content/Code": {
+      "main": [
+        [
+          {
+            "node": "Concatenate Content",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Concatenate Content": {
+      "main": [
+        [
+          {
+            "node": "Loop",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Concatenated Content": {
+      "main": [
+        [
+          {
+            "node": "Data Extract And Summarizer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When Chat Message Received": {
+      "main": [
+        [
+          {
+            "node": "Get Top 3 SERP Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Top 3 SERP Results": {
+      "main": [
+        [
+          {
+            "node": "Structure Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Docs": {
+      "main": [
+        [
+          {
+            "node": "Done",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "9b52bd59153ae82dd3f85ba55bba63a67709d765ac7eca1262e072ce1b3e6ba8"
+  },
+  "tags": []
+}

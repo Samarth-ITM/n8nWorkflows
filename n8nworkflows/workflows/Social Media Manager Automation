@@ -1,0 +1,613 @@
+{
+  "name": "Social Media Manager Automation",
+  "nodes": [
+    {
+      "parameters": {
+        "url": "https://example.com/trending.rss",
+        "options": {}
+      },
+      "name": "RSS Feed",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1,
+      "position": [
+        360,
+        60
+      ],
+      "id": "79b89cc6-7dcf-4d0b-b398-6c19877c4ad6"
+    },
+    {
+      "parameters": {
+        "url": "={{$json[\"link\"]}}",
+        "responseFormat": "string",
+        "options": {}
+      },
+      "name": "HTTP Request",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        280,
+        280
+      ],
+      "id": "89c910a3-73e7-4ba2-9d23-c51eb5f44d9f"
+    },
+    {
+      "parameters": {
+        "extractionValues": {
+          "values": [
+            {
+              "key": "content",
+              "cssSelector": "p",
+              "returnArray": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Text Parser",
+      "type": "n8n-nodes-base.htmlExtract",
+      "typeVersion": 1,
+      "position": [
+        620,
+        220
+      ],
+      "id": "24322470-4158-438f-9fe5-f6213063db34"
+    },
+    {
+      "parameters": {
+        "url": "https://api.openrouter.ai/v1/chat/completions",
+        "jsonParameters": true,
+        "options": {}
+      },
+      "name": "Perplexity AI",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        780,
+        80
+      ],
+      "id": "be43b8fb-7071-494a-b1ed-c36c263d5043"
+    },
+    {
+      "parameters": {
+        "url": "https://api.openai.com/v1/chat/completions",
+        "jsonParameters": true,
+        "options": {}
+      },
+      "name": "Snappy Summary",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        960,
+        220
+      ],
+      "id": "db3d5473-6c2a-475a-ae8f-f8ab62e66491"
+    },
+    {
+      "parameters": {
+        "url": "https://your-midjourney-proxy.com/generate",
+        "jsonParameters": true,
+        "options": {}
+      },
+      "name": "Midjourney",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        1200,
+        100
+      ],
+      "id": "0cf226e9-6f20-4be8-9592-300476f2459a"
+    },
+    {
+      "parameters": {
+        "functionCode": "const inputData0 = $input.all()[0];\\nconst inputData1 = $input.all()[1];\\nconst combinedItems = [];\\nfor (let i = 0; i < inputData0.length; i++) {\\n  const content = inputData0[i].json.choices && inputData0[i].json.choices[0]?.message?.content ? inputData0[i].json.choices[0].message.content : (inputData0[i].json.Content || \\\"\\\");\\n  const imageUrl = inputData1[i] && inputData1[i].json.imageURL ? inputData1[i].json.imageURL : (inputData1[i]?.json.url || \\\"\\\");\\n  combinedItems.push({ json: { \\\"Content\\\": content, \\\"ImageURL\\\": imageUrl } });\\n}\\nreturn combinedItems;"
+      },
+      "name": "Router",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        1380,
+        260
+      ],
+      "id": "7bacadf5-f4fd-4e0f-867c-c94f06a2886b"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "application": "appFakeBaseID",
+        "table": "Posts",
+        "options": {}
+      },
+      "name": "Airtable Facebook",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 1,
+      "position": [
+        980,
+        600
+      ],
+      "id": "979f589c-4842-435d-a278-96ea68ed6d63",
+      "credentials": {
+        "airtableApi": {
+          "id": null,
+          "name": "Airtable API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "application": "appFakeBaseID",
+        "table": "Posts",
+        "options": {}
+      },
+      "name": "Airtable Instagram",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 1,
+      "position": [
+        1320,
+        600
+      ],
+      "id": "d81b260a-d180-4e7e-9897-fe63a287b561",
+      "credentials": {
+        "airtableApi": {
+          "id": null,
+          "name": "Airtable API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "application": "appFakeBaseID",
+        "table": "Posts",
+        "options": {}
+      },
+      "name": "Airtable LinkedIn",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 1,
+      "position": [
+        980,
+        820
+      ],
+      "id": "9a77b417-86a1-43b6-88af-4dd3fce0acff",
+      "credentials": {
+        "airtableApi": {
+          "id": null,
+          "name": "Airtable API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "application": "appFakeBaseID",
+        "table": "Posts",
+        "options": {}
+      },
+      "name": "Airtable Twitter",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 1,
+      "position": [
+        1160,
+        1000
+      ],
+      "id": "4120a1f3-95e4-4da7-b5e8-a7e18752aaa6",
+      "credentials": {
+        "airtableApi": {
+          "id": null,
+          "name": "Airtable API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "application": "appFakeBaseID",
+        "table": "Posts",
+        "options": {}
+      },
+      "name": "Airtable ViralScript",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 1,
+      "position": [
+        1320,
+        820
+      ],
+      "id": "fb05c5b5-a4e5-40f9-9a46-8bf3b0f6c0db",
+      "credentials": {
+        "airtableApi": {
+          "id": null,
+          "name": "Airtable API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "graphApiVersion": "v22.0",
+        "node": "lkhjdfhg",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.facebookGraphApi",
+      "typeVersion": 1,
+      "position": [
+        580,
+        600
+      ],
+      "id": "a3838af2-746d-4daa-9135-90d726aa1741",
+      "name": "Instagram Post VIA FaceBook",
+      "credentials": {
+        "facebookGraphApi": {
+          "id": "BuX1IyBAdFh14Bg3",
+          "name": "Facebook Graph account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "postAs": "organization",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.linkedIn",
+      "typeVersion": 1,
+      "position": [
+        260,
+        820
+      ],
+      "id": "cafb7533-b5bb-4eec-a116-8d9fad9777c2",
+      "name": "LinkedIn",
+      "credentials": {
+        "linkedInOAuth2Api": {
+          "id": "THU6OkZHxs8vSWJt",
+          "name": "LinkedIn account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "Platform",
+              "value": "ViralScript"
+            },
+            {
+              "name": "Platform",
+              "value": "ViralScript"
+            },
+            {
+              "name": "Text",
+              "value": "Write your viral caption here"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "ViralScript Post",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [
+        580,
+        820
+      ],
+      "id": "49e7fef3-a130-4237-a1b5-72aee2440845"
+    },
+    {
+      "parameters": {
+        "text": "sdftujdtfykj",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.twitter",
+      "typeVersion": 2,
+      "position": [
+        420,
+        1000
+      ],
+      "id": "3c9b83c6-d3c1-4a77-a0de-b91dc285fc47",
+      "name": "X",
+      "credentials": {
+        "twitterOAuth2Api": {
+          "id": "Y7mAo57k2r4sGl3a",
+          "name": "X account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "graphApiVersion": "v22.0",
+        "node": "yes",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.facebookGraphApi",
+      "typeVersion": 1,
+      "position": [
+        260,
+        600
+      ],
+      "id": "c1774cbd-c548-4748-80ec-50729852892f",
+      "name": "Facebook",
+      "credentials": {
+        "facebookGraphApi": {
+          "id": "BuX1IyBAdFh14Bg3",
+          "name": "Facebook Graph account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## INPUT SECTION",
+        "height": 480,
+        "width": 440,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        120,
+        0
+      ],
+      "id": "6d0894e8-6d45-4fff-b722-4c4e3cb10a69",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "## TEXT PROCESSING",
+        "height": 480,
+        "width": 520
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        580,
+        0
+      ],
+      "id": "ebb21c4b-c1c0-49c7-b84e-1b23553434fe",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "## IMAGE GENERATION",
+        "height": 480,
+        "width": 440,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1120,
+        0
+      ],
+      "id": "e2ef70c7-c792-468c-a474-5d76074fef68",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "content": "## ROUTING & POSTING",
+        "height": 660,
+        "width": 720,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        120,
+        520
+      ],
+      "id": "897c218f-7a4c-43c8-8c90-faa62cd434a1",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "content": "## AIRTABLE SAVES",
+        "height": 660,
+        "width": 700,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        860,
+        520
+      ],
+      "id": "c5c890b2-7eba-4b7f-be6c-830fe5450e03",
+      "name": "Sticky Note4"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {}
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        200,
+        60
+      ],
+      "id": "9300918f-58f9-4e76-8b67-31c635407b98",
+      "name": "Schedule Trigger"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "RSS Feed": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Text Parser",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Text Parser": {
+      "main": [
+        [
+          {
+            "node": "Perplexity AI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Perplexity AI": {
+      "main": [
+        [
+          {
+            "node": "Snappy Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Snappy Summary": {
+      "main": [
+        [
+          {
+            "node": "Midjourney",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Router": {
+      "main": [
+        [
+          {
+            "node": "Facebook",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Instagram Post VIA FaceBook",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Airtable LinkedIn",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "LinkedIn",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "ViralScript Post",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "X",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Midjourney": {
+      "main": [
+        [
+          {
+            "node": "Router",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Instagram Post VIA FaceBook": {
+      "main": [
+        [
+          {
+            "node": "Airtable Instagram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LinkedIn": {
+      "main": [
+        [
+          {
+            "node": "Airtable LinkedIn",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ViralScript Post": {
+      "main": [
+        [
+          {
+            "node": "Airtable ViralScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "X": {
+      "main": [
+        [
+          {
+            "node": "Airtable Twitter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Facebook": {
+      "main": [
+        [
+          {
+            "node": "Airtable Facebook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "RSS Feed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "4fedb633-9e08-4fa8-a93c-482392cbe156",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "9b52bd59153ae82dd3f85ba55bba63a67709d765ac7eca1262e072ce1b3e6ba8"
+  },
+  "id": "BP8NzQ0k6dwUEFB6",
+  "tags": []
+}

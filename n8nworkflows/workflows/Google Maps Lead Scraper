@@ -1,0 +1,677 @@
+{
+  "name": "Google maps lead scraper",
+  "nodes": [
+    {
+      "parameters": {},
+      "name": "Start",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -2400,
+        -200
+      ],
+      "id": "6024065e-9a92-4315-abed-1e79c2fdf6fd"
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "keyword",
+              "value": "roofers in Los Angeles"
+            },
+            {
+              "name": "maxResults",
+              "value": "20"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Set Search Parameters",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [
+        -2180,
+        -200
+      ],
+      "id": "d4d2eb61-0a78-41ec-96a6-99c1628af1fa"
+    },
+    {
+      "parameters": {
+        "functionCode": "return [{\n  json: {\n    url: `https://api.apify.com/v2/actor-tasks/YOUR_TASK_ID/run-sync-get-dataset-items?token=YOUR_API_TOKEN`,\n    keyword: items[0].json.keyword,\n    maxResults: items[0].json.maxResults\n  }\n}];"
+      },
+      "name": "Format Apify Request URL",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        -1960,
+        -200
+      ],
+      "id": "94963a47-4cbf-4d9c-9ba2-5f0c90330d3c"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.url }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "query",
+              "value": "={{ $json.keyword }}"
+            },
+            {
+              "name": "maxResults",
+              "value": "={{ $json.maxResults }}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "name": "HTTP Request to Apify",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        -1740,
+        -200
+      ],
+      "id": "ea24a628-63cc-452f-a4b7-b4a45e578721"
+    },
+    {
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      },
+      "name": "Split Businesses",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 2,
+      "position": [
+        -1520,
+        -200
+      ],
+      "id": "d9912ea9-6a7e-4adf-a238-fcdec7ecfbef"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.hasOwnProperty('website') }}",
+              "value2": "true"
+            },
+            {
+              "value1": "={{ $json.website !== '' }}",
+              "value2": "true"
+            }
+          ]
+        }
+      },
+      "name": "Filter Businesses with Websites",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        -1260,
+        -200
+      ],
+      "id": "34f67e95-ade6-4ab7-b304-f2d58fcabdd6"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "list",
+          "cachedResultName": "Leads Database"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "YOUR_SHEET_NAME",
+          "mode": "list",
+          "cachedResultName": "Roofing Leads"
+        },
+        "columns": {
+          "mappable": true,
+          "value": {
+            "A": "={{ $json.name }}",
+            "B": "={{ $json.website }}",
+            "C": "={{ $json.phone }}",
+            "D": "",
+            "E": ""
+          }
+        },
+        "options": {}
+      },
+      "name": "Google Sheets → Create Spreadsheet Row",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        -1000,
+        -200
+      ],
+      "id": "b96ee872-386c-4982-8079-e9a30c8cc7d6",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "Y0FaSSQtRvr1YSU8",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "amount": "={{ Math.floor(Math.random() * 3) + 1 }}",
+        "unit": "seconds"
+      },
+      "name": "Delay Between Requests",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [
+        -2380,
+        180
+      ],
+      "webhookId": "76f52bc5-801f-47ca-813c-6fdc01196b2c",
+      "id": "1a9d0aed-785b-4273-a082-f6096d6decb3"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.website }}",
+        "options": {
+          "redirect": {
+            "redirect": {
+              "followRedirects": true,
+              "maxRedirects": 5
+            }
+          },
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "responseFormat": "text"
+            }
+          },
+          "timeout": 10000
+        }
+      },
+      "name": "HTTP Request to Business Website",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        -2120,
+        100
+      ],
+      "id": "8d061742-c43c-45f8-8e36-b162a4a1d31a",
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "functionCode": "// Check if request was successful\nif ($json.statusCode && $json.statusCode >= 200 && $json.statusCode < 300 && $json.body) {\n  const html = $json.body;\n  // Extract email using regex\n  const emailMatch = html.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-z]{2,}/g);\n  const uniqueEmails = emailMatch ? [...new Set(emailMatch)] : [];\n  \n  // Extract page content - strip HTML tags for better context\n  const pageText = html.replace(/<[^>]*>?/gm, ' ')\n                      .replace(/\\s+/g, ' ')\n                      .trim()\n                      .slice(0, 3000);\n  \n  return [{\n    json: {\n      ...($json),\n      email: uniqueEmails.length > 0 ? uniqueEmails[0] : null,\n      allEmails: uniqueEmails,\n      pageText: pageText,\n      scrapeSuccess: true\n    }\n  }];\n} else {\n  // Handle failed requests\n  return [{\n    json: {\n      ...($json),\n      email: null,\n      pageText: \"\",\n      scrapeSuccess: false,\n      error: $json.error || \"Failed to scrape website\"\n    }\n  }];\n}"
+      },
+      "name": "Extract Email via Function + Regex",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        -1860,
+        180
+      ],
+      "id": "43019393-e69f-448c-b07c-c12796b768a7"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.email !== null }}",
+              "value2": "true"
+            }
+          ]
+        }
+      },
+      "name": "Filter if Email Exists",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        -1480,
+        120
+      ],
+      "id": "4bf693eb-4315-49c6-8ce3-a851fc786735"
+    },
+    {
+      "parameters": {
+        "resource": "chat",
+        "prompt": {
+          "messages": [
+            {
+              "role": "system",
+              "content": "You're an expert marketer specialized in generating personalized cold emails. Create a professional yet friendly email for a roofing company based on the information provided. Offer SEO and lead generation services without sounding spammy. Use details from their website to make it personalized."
+            },
+            {
+              "content": "=Write a cold email to a roofing company called \"{{ $json.name }}\" based on this page content:\n\n{{ $json.pageText }}\n\nOffer SEO and lead generation help without sounding spammy. Keep it under 150 words."
+            }
+          ]
+        },
+        "options": {
+          "maxTokens": 500,
+          "temperature": 0.7
+        },
+        "requestOptions": {}
+      },
+      "name": "OpenAI Node — Draft Cold Email",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1,
+      "position": [
+        -1100,
+        160
+      ],
+      "id": "72a816d5-2d47-47fb-9263-574682990378",
+      "credentials": {
+        "openAiApi": {
+          "id": "IZqhb364ovMUYOYl",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "lookup",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "list",
+          "cachedResultName": "Leads Database"
+        }
+      },
+      "name": "Lookup Row by Website",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        -2360,
+        520
+      ],
+      "id": "fac3ae78-6227-41d1-b1f5-ea9bf6348d04",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "Y0FaSSQtRvr1YSU8",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "list",
+          "cachedResultName": "Leads Database"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "YOUR_SHEET_NAME",
+          "mode": "list",
+          "cachedResultName": "Roofing Leads"
+        },
+        "columns": {
+          "mappable": true,
+          "value": {
+            "D": "={{ $json.email }}",
+            "E": "={{ $node[\"OpenAI Node — Draft Cold Email\"].json.response.choices[0].message.content }}"
+          }
+        },
+        "options": {}
+      },
+      "name": "Update Row with Email + Message",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        -1880,
+        620
+      ],
+      "id": "11e1fa49-65d5-4528-9255-b9437335da71",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "Y0FaSSQtRvr1YSU8",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "functionCode": "// Create a log message\nconst businessName = $json.name || \"Unknown Business\";\nconst website = $json.website || \"No Website\";\nconst email = $json.email || \"No Email Found\";\n\n// Format the log message\nconsole.log(`[${new Date().toISOString()}] Processed: ${businessName} | ${website} | ${email}`);\n\nreturn [{\n  json: {\n    status: 'Logged',\n    timestamp: new Date().toISOString(),\n    businessProcessed: businessName,\n    emailFound: email !== \"No Email Found\"\n  }\n}];"
+      },
+      "name": "Add Execution Log",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        -1480,
+        560
+      ],
+      "id": "d3b4f9e3-47cb-4ef1-ae50-f6f519c75224"
+    },
+    {
+      "parameters": {
+        "channel": "YOUR_SLACK_CHANNEL",
+        "text": "=New Lead Saved:\n*{{ $json.name }}*\n{{ $json.website }} | {{ $json.email }}\n\nEmail message generated and saved to Google Sheets.",
+        "otherOptions": {},
+        "attachments": []
+      },
+      "name": "Slack Update",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 1,
+      "position": [
+        -1100,
+        440
+      ],
+      "id": "bc02bbd2-ed2d-4873-b227-ac4c79198c4a",
+      "credentials": {
+        "slackApi": {
+          "id": "DeqBF7SUM53f2ORk",
+          "name": "Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "YOUR_TELEGRAM_CHAT_ID",
+        "text": "=🚨 *New Lead Processed* 🚨\n\n*{{ $json.name }}*\n🌐 {{ $json.website }}\n📧 {{ $json.email }}\n\nEmail draft saved to Google Sheets.",
+        "additionalFields": {
+          "disable_notification": false,
+          "parse_mode": "Markdown"
+        }
+      },
+      "name": "Telegram Update",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [
+        -1100,
+        660
+      ],
+      "id": "275beabe-8bbb-488b-994a-ff92e97de44b",
+      "webhookId": "e4e857a6-3174-4ee1-9608-f3a77cf5433d",
+      "credentials": {
+        "telegramApi": {
+          "id": "rDPxxs7i0PKV9uza",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## Scrape Google Maps",
+        "height": 320,
+        "width": 1640,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -2460,
+        -300
+      ],
+      "id": "cf203b46-bca3-4e73-a420-3e4ea980bbc5",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "## Enrich With Email",
+        "height": 340,
+        "width": 800,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -2460,
+        40
+      ],
+      "id": "982b77e3-6352-442b-a063-4784daeb3823",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "## Generate Personalized Message",
+        "height": 340,
+        "width": 820,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -1640,
+        40
+      ],
+      "id": "9b9be91c-2ead-4c26-a098-b0330058fe7d",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "content": "## Update Final Google Sheet",
+        "height": 440,
+        "width": 800
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -2460,
+        400
+      ],
+      "id": "658ae087-ba82-4e44-91c4-2a423a616d17",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "content": "## Logging & Notifications",
+        "height": 440,
+        "width": 820,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -1640,
+        400
+      ],
+      "id": "8729f509-649e-462c-b072-fd3de8b1d18a",
+      "name": "Sticky Note4"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "Set Search Parameters",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Search Parameters": {
+      "main": [
+        [
+          {
+            "node": "Format Apify Request URL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Apify Request URL": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request to Apify",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request to Apify": {
+      "main": [
+        [
+          {
+            "node": "Split Businesses",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Businesses": {
+      "main": [
+        [
+          {
+            "node": "Filter Businesses with Websites",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Businesses with Websites": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets → Create Spreadsheet Row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Sheets → Create Spreadsheet Row": {
+      "main": [
+        [
+          {
+            "node": "Delay Between Requests",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delay Between Requests": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request to Business Website",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request to Business Website": {
+      "main": [
+        [
+          {
+            "node": "Extract Email via Function + Regex",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Email via Function + Regex": {
+      "main": [
+        [
+          {
+            "node": "Filter if Email Exists",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter if Email Exists": {
+      "main": [
+        [
+          {
+            "node": "OpenAI Node — Draft Cold Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Node — Draft Cold Email": {
+      "main": [
+        [
+          {
+            "node": "Lookup Row by Website",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lookup Row by Website": {
+      "main": [
+        [
+          {
+            "node": "Update Row with Email + Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Row with Email + Message": {
+      "main": [
+        [
+          {
+            "node": "Add Execution Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Add Execution Log": {
+      "main": [
+        [
+          {
+            "node": "Slack Update",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Telegram Update",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "97186a36-bc39-4462-8630-fcf3268d8ca4",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "9b52bd59153ae82dd3f85ba55bba63a67709d765ac7eca1262e072ce1b3e6ba8"
+  },
+  "id": "lDGxERpQFae95eKy",
+  "tags": []
+}

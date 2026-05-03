@@ -1,0 +1,820 @@
+{
+  "name": "Multichannel Lead Scraper",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "2fd250e4-764a-42e6-9927-f9f63bf3c497",
+      "name": "Cron Trigger",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [
+        -820,
+        40
+      ]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "keywords",
+              "value": "[\"roofers in Los Angeles\", \"dentists in New York\", \"cafes in Jaipur\"]"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "8506068d-3979-47e3-8ff3-6f71bfe63547",
+      "name": "Set Keywords",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [
+        -600,
+        40
+      ]
+    },
+    {
+      "parameters": {
+        "batchSize": 1,
+        "options": {
+          "reset": false
+        }
+      },
+      "id": "a6951787-ac02-4a7a-bdcc-05246bfa281d",
+      "name": "Split In Batches",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 1,
+      "position": [
+        -380,
+        40
+      ]
+    },
+    {
+      "parameters": {
+        "requestMethod": "POST",
+        "url": "https://api.apify.com/v2/actor-tasks/YOUR_GOOGLEMAPS_TASK_ID/run-sync?token=YOUR_APIFY_TOKEN",
+        "jsonParameters": true,
+        "options": {},
+        "bodyParametersJson": "{\n  \"search\": {{$json[\"keywords\"]}}\n}"
+      },
+      "id": "2c7f6247-7d52-438e-9839-455ea46620ca",
+      "name": "Google Maps Search",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 2,
+      "position": [
+        -40,
+        -20
+      ]
+    },
+    {
+      "parameters": {
+        "requestMethod": "POST",
+        "url": "https://api.apify.com/v2/actor-tasks/YOUR_LINKEDIN_TASK_ID/run-sync?token=YOUR_APIFY_TOKEN",
+        "jsonParameters": true,
+        "options": {},
+        "bodyParametersJson": "{\n  \"search\": {{$json[\"keywords\"]}}\n}"
+      },
+      "id": "a6240854-43d7-48e8-8c8d-37764a1dbe2d",
+      "name": "LinkedIn Search",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 2,
+      "position": [
+        -40,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "requestMethod": "POST",
+        "url": "https://api.apify.com/v2/actor-tasks/YOUR_TWITTER_TASK_ID/run-sync?token=YOUR_APIFY_TOKEN",
+        "jsonParameters": true,
+        "options": {},
+        "bodyParametersJson": "{\n  \"search\": {{$json[\"keywords\"]}}\n}"
+      },
+      "id": "082091f7-0e53-4b54-b15b-ce2dc164f729",
+      "name": "Twitter Search",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 2,
+      "position": [
+        -40,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "requestMethod": "POST",
+        "url": "https://api.apify.com/v2/actor-tasks/YOUR_INSTAGRAM_TASK_ID/run-sync?token=YOUR_APIFY_TOKEN",
+        "jsonParameters": true,
+        "options": {},
+        "bodyParametersJson": "{\n  \"search\": {{$json[\"keywords\"]}}\n}"
+      },
+      "id": "2258a079-d9c4-4471-bbd2-427bc884b089",
+      "name": "Instagram Search",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 2,
+      "position": [
+        -40,
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "requestMethod": "POST",
+        "url": "https://api.apify.com/v2/actor-tasks/YOUR_FACEBOOK_TASK_ID/run-sync?token=YOUR_APIFY_TOKEN",
+        "jsonParameters": true,
+        "options": {},
+        "bodyParametersJson": "{\n  \"search\": {{$json[\"keywords\"]}}\n}"
+      },
+      "id": "5123f7b0-8e15-4842-8a0e-f4eb2042c1ad",
+      "name": "Facebook Search",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 2,
+      "position": [
+        -40,
+        680
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Process Google Maps data\nconst data = $input.item.json.data || [];\n\nreturn data.map(item => {\n  return {\n    source: \"Google Maps\",\n    businessName: item.name || \"\",\n    website: item.website || \"\",\n    phone: item.phoneNumber || \"\",\n    address: item.address || \"\",\n    keywords: $input.item.json.keywords,\n    service: $input.item.json.keywords.split(\" in \")[0] || \"\",\n    location: $input.item.json.keywords.split(\" in \")[1] || \"\"\n  };\n});"
+      },
+      "id": "c0d4cc64-7de0-4faa-9747-ff7a9bcf86cb",
+      "name": "Process Maps Data",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        180,
+        -20
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Process LinkedIn data\nconst data = $input.item.json.data || [];\n\nreturn data.map(item => {\n  return {\n    source: \"LinkedIn\",\n    businessName: item.name || \"\",\n    website: item.website || \"\",\n    phone: item.phone || \"\",\n    address: item.address || \"\",\n    keywords: $input.item.json.keywords,\n    service: $input.item.json.keywords.split(\" in \")[0] || \"\",\n    location: $input.item.json.keywords.split(\" in \")[1] || \"\"\n  };\n});"
+      },
+      "id": "62e3a30d-25ca-4470-bb28-943a78fbd7c8",
+      "name": "Process LinkedIn Data",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        180,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Process Twitter data\nconst data = $input.item.json.data || [];\n\nreturn data.map(item => {\n  return {\n    source: \"Twitter\",\n    businessName: item.name || \"\",\n    website: item.website || item.url || \"\",\n    phone: \"\", // Twitter profiles typically don't have phone numbers\n    address: \"\",\n    keywords: $input.item.json.keywords,\n    service: $input.item.json.keywords.split(\" in \")[0] || \"\",\n    location: $input.item.json.keywords.split(\" in \")[1] || \"\"\n  };\n});"
+      },
+      "id": "aaa1d58e-ecef-438a-9a8d-67f23a4f6ad9",
+      "name": "Process Twitter Data",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        180,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Process Instagram data\nconst data = $input.item.json.data || [];\n\nreturn data.map(item => {\n  return {\n    source: \"Instagram\",\n    businessName: item.name || item.username || \"\",\n    website: item.website || item.externalUrl || \"\",\n    phone: \"\", // Instagram profiles typically don't have phone numbers\n    address: \"\",\n    keywords: $input.item.json.keywords,\n    service: $input.item.json.keywords.split(\" in \")[0] || \"\",\n    location: $input.item.json.keywords.split(\" in \")[1] || \"\"\n  };\n});"
+      },
+      "id": "b4cdda61-7c99-4a0b-adb9-a27e7da48186",
+      "name": "Process Instagram Data",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        180,
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Process Facebook data\nconst data = $input.item.json.data || [];\n\nreturn data.map(item => {\n  return {\n    source: \"Facebook\",\n    businessName: item.name || \"\",\n    website: item.website || \"\",\n    phone: item.phone || \"\",\n    address: item.location?.address || \"\",\n    keywords: $input.item.json.keywords,\n    service: $input.item.json.keywords.split(\" in \")[0] || \"\",\n    location: $input.item.json.keywords.split(\" in \")[1] || \"\"\n  };\n});"
+      },
+      "id": "3989eef0-8409-429d-af35-74d424472d9e",
+      "name": "Process Facebook Data",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        180,
+        680
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combinationMode": "multiplex",
+        "options": {}
+      },
+      "id": "21ed8947-8f82-4e31-a6d7-830cd1f9ce26",
+      "name": "Merge Results",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 2,
+      "position": [
+        540,
+        40
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Remove duplicates based on website or business name\nconst items = $input.all();\nconst uniqueItems = {};\n\nfor (const item of items) {\n  const key = item.json.website || item.json.businessName;\n  if (key && !uniqueItems[key]) {\n    uniqueItems[key] = item.json;\n  }\n}\n\nreturn Object.values(uniqueItems);"
+      },
+      "id": "202beb50-11b8-4674-944a-0f5b921092c3",
+      "name": "Remove Duplicates",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        720,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json[\"website\"] !== \"\" && !$json[\"website\"].includes(\"@\")}}",
+              "operation": "isTrue"
+            }
+          ]
+        }
+      },
+      "id": "8cad819e-6384-4fd4-bfff-4c607538edcf",
+      "name": "Filter Valid Websites",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        -640,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json[\"email\"]}}",
+              "operation": "isEmpty"
+            }
+          ]
+        }
+      },
+      "id": "9ae53151-3584-4e93-8a20-7623ab56edfe",
+      "name": "Check Email",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        -420,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=https://api.hunter.io/v2/domain-search?domain={{$json[\"website\"].replace(\"https://\", \"\").replace(\"http://\", \"\").split(\"/\")[0]}}&api_key=YOUR_HUNTER_API_KEY",
+        "options": {}
+      },
+      "id": "9154ddab-283b-4609-981d-102e8aeb3a93",
+      "name": "Hunter.io API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        -780,
+        700
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Extract email from Hunter.io response\nconst item = $input.item;\n\nif (item.json.data && item.json.data.emails && item.json.data.emails.length > 0) {\n  // Get the email with the highest confidence score\n  const sortedEmails = item.json.data.emails.sort((a, b) => b.confidence - a.confidence);\n  const bestEmail = sortedEmails[0].value;\n  \n  return {\n    ...item.json,\n    email: bestEmail,\n    emailSource: \"hunter.io\"\n  };\n} else {\n  // Try to create a pattern-based email\n  const domain = item.json.website.replace(\"https://\", \"\").replace(\"http://\", \"\").split(\"/\")[0];\n  const businessName = item.json.businessName.toLowerCase().replace(/[^a-z0-9]/g, \"\");\n  \n  return {\n    ...item.json,\n    email: `info@${domain}`,\n    emailSource: \"pattern\"\n  };\n}"
+      },
+      "id": "2fbf7c53-5ff7-4462-9754-d47ab63f1eae",
+      "name": "Extract Email",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        -560,
+        700
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "mergeByFields": {
+          "values": [
+            {
+              "field1": "website",
+              "field2": "website"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "9f993fc7-f878-4f4e-935c-f3f3d1816345",
+      "name": "Join Results",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 2,
+      "position": [
+        -200,
+        940
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "messageCompletion",
+        "requestOptions": {}
+      },
+      "id": "0147c006-7dd9-4e2e-b5cb-a50713c4664e",
+      "name": "Generate Email Copy",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1,
+      "position": [
+        60,
+        940
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "IZqhb364ovMUYOYl",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "functionCode": "// Format the final data for Google Sheets\nconst item = $input.item;\n\nreturn {\n  ...item.json,\n  emailMessage: item.json.messageCompletion || \"\",\n  dateAdded: new Date().toISOString()\n};"
+      },
+      "id": "54dc91fa-4d06-48d4-a4c5-70ebbfd35bd9",
+      "name": "Format Final Data",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        320,
+        940
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": "YOUR_GOOGLE_SHEET_ID",
+        "sheetName": "Leads",
+        "options": {}
+      },
+      "id": "0576e0f3-fb1e-4064-b5c6-2130ae38dca0",
+      "name": "Save to Google Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 3,
+      "position": [
+        480,
+        560
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "Y0FaSSQtRvr1YSU8",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "channel": "YOUR_SLACK_CHANNEL_ID",
+        "text": "=New lead from {{$json[\"source\"]}}: {{$json[\"businessName\"]}} – {{$json[\"email\"]}}",
+        "otherOptions": {},
+        "attachments": []
+      },
+      "id": "c27cec67-652a-4d31-a08b-da947fe99daf",
+      "name": "Send Slack Notification",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 1,
+      "position": [
+        740,
+        680
+      ],
+      "credentials": {
+        "slackApi": {
+          "id": "DeqBF7SUM53f2ORk",
+          "name": "Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "YOUR_TELEGRAM_CHAT_ID",
+        "text": "=🔍 New Lead Found!\n\n🏢 *{{$json[\"businessName\"]}}*\n📍 {{$json[\"location\"]}}\n🔗 {{$json[\"website\"]}}\n📧 {{$json[\"email\"]}}\n☎️ {{$json[\"phone\"]}}\n\nFound via {{$json[\"source\"]}}",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "ed3e361f-7779-4e09-b267-8895c79824ce",
+      "name": "Send Telegram Message",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [
+        740,
+        480
+      ],
+      "webhookId": "d931c478-db47-4869-8b24-3e37e0104fd1",
+      "credentials": {
+        "telegramApi": {
+          "id": "rDPxxs7i0PKV9uza",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## Trigger & Keyword Setup\n",
+        "height": 480,
+        "width": 660,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -860,
+        -100
+      ],
+      "id": "d7307b73-15d0-4c75-b389-fb45be02f1d4",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "## Merge & Cleanup",
+        "height": 480,
+        "width": 520,
+        "color": 7
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        420,
+        -100
+      ],
+      "id": "cff70d96-0aa4-4df9-ab7b-99ee11c8dbb6",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "## Multichannel Scraping",
+        "height": 960,
+        "width": 580,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -180,
+        -100
+      ],
+      "id": "f9fd39b5-619e-4b06-a7f7-6ddb720cf431",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "content": "## Message Generation",
+        "height": 240,
+        "width": 1800
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -860,
+        880
+      ],
+      "id": "554f8bcc-2e7d-4245-a210-8ddc39d440d9",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "content": "## Filter & Email Collection",
+        "height": 460,
+        "width": 660,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -860,
+        400
+      ],
+      "id": "4553d24e-e154-469f-b2a0-3610aff8c3c3",
+      "name": "Sticky Note4"
+    },
+    {
+      "parameters": {
+        "content": "## Message Generation",
+        "height": 460,
+        "width": 520,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        420,
+        400
+      ],
+      "id": "e09c7d71-2650-46e3-a555-7301c4de5c5f",
+      "name": "Sticky Note5"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Cron Trigger": {
+      "main": [
+        [
+          {
+            "node": "Set Keywords",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Keywords": {
+      "main": [
+        [
+          {
+            "node": "Split In Batches",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split In Batches": {
+      "main": [
+        [
+          {
+            "node": "Google Maps Search",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "LinkedIn Search",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Twitter Search",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Instagram Search",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Facebook Search",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Maps Search": {
+      "main": [
+        [
+          {
+            "node": "Process Maps Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LinkedIn Search": {
+      "main": [
+        [
+          {
+            "node": "Process LinkedIn Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Twitter Search": {
+      "main": [
+        [
+          {
+            "node": "Process Twitter Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Instagram Search": {
+      "main": [
+        [
+          {
+            "node": "Process Instagram Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Facebook Search": {
+      "main": [
+        [
+          {
+            "node": "Process Facebook Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Maps Data": {
+      "main": [
+        [
+          {
+            "node": "Merge Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process LinkedIn Data": {
+      "main": [
+        [
+          {
+            "node": "Merge Results",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge Results": {
+      "main": [
+        [
+          {
+            "node": "Remove Duplicates",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Remove Duplicates": {
+      "main": [
+        [
+          {
+            "node": "Filter Valid Websites",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Valid Websites": {
+      "main": [
+        [
+          {
+            "node": "Check Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Email": {
+      "main": [
+        [
+          {
+            "node": "Hunter.io API",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Join Results",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Hunter.io API": {
+      "main": [
+        [
+          {
+            "node": "Extract Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Email": {
+      "main": [
+        [
+          {
+            "node": "Join Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Join Results": {
+      "main": [
+        [
+          {
+            "node": "Generate Email Copy",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Email Copy": {
+      "main": [
+        [
+          {
+            "node": "Format Final Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Final Data": {
+      "main": [
+        [
+          {
+            "node": "Save to Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save to Google Sheets": {
+      "main": [
+        [
+          {
+            "node": "Send Slack Notification",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send Telegram Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Slack Notification": {
+      "main": [
+        []
+      ]
+    },
+    "Process Twitter Data": {
+      "main": [
+        [
+          {
+            "node": "Merge Results",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Process Instagram Data": {
+      "main": [
+        [
+          {
+            "node": "Merge Results",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Process Facebook Data": {
+      "main": [
+        [
+          {
+            "node": "Merge Results",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "cbfd2c0d-5869-474a-b659-5f497c185cc5",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "9b52bd59153ae82dd3f85ba55bba63a67709d765ac7eca1262e072ce1b3e6ba8"
+  },
+  "id": "WyrUoQKD0Odb76ks",
+  "tags": []
+}

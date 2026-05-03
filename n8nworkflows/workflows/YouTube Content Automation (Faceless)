@@ -1,0 +1,785 @@
+{
+  "name": "YouTube Content Automation (Faceless)",
+  "nodes": [
+    {
+      "parameters": {
+        "url": "https://api.dev.runwayml.com/v1/image_to_video",
+        "options": {}
+      },
+      "id": "7fe8436b-b5e2-46c6-956a-5a5c0c111dd2",
+      "name": "Generate Video",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        160,
+        520
+      ]
+    },
+    {
+      "parameters": {
+        "unit": "seconds"
+      },
+      "id": "fafe4748-3827-450a-9ec8-666f23b5f609",
+      "name": "150 Sec",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [
+        300,
+        500
+      ],
+      "webhookId": "37c707ea-ed3f-4e5c-b165-5a9b7aaa50a8"
+    },
+    {
+      "parameters": {
+        "url": "https://api.dev.runwayml.com/v1/tasks/{{ $json.id }}",
+        "options": {}
+      },
+      "id": "8c2034c1-ffc8-471e-b7e4-0967eba3043e",
+      "name": "Get Video",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        180,
+        700
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "13c90683-7e31-46d7-9106-1b7954276436",
+      "name": "Switch",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 1,
+      "position": [
+        320,
+        680
+      ]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "status",
+              "value": "error"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "4c0c83f1-9ed8-4a47-af90-25287acf1ea1",
+      "name": "Error",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [
+        -180,
+        600
+      ]
+    },
+    {
+      "parameters": {
+        "amount": 10,
+        "unit": "seconds"
+      },
+      "id": "65dddada-a7e2-4a9b-a3a5-ae1541a56fc0",
+      "name": "Polling",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [
+        -140,
+        800
+      ],
+      "webhookId": "dd1f635f-96a9-4e31-a982-23db30b90545"
+    },
+    {
+      "parameters": {
+        "functionCode": "return items;"
+      },
+      "id": "73953a48-2299-4603-8ba0-7d1c96b384cd",
+      "name": "Created Video",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        80,
+        60
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://cdn.runwayml.com/video-job/output_123abc456.mp4",
+        "options": {}
+      },
+      "id": "502ce857-fe66-44a4-8a20-708218babe3a",
+      "name": "Download Video",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        300,
+        60
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "operation": "update",
+        "sheetId": "{{GOOGLE_SHEET_ID}}",
+        "range": "Sheet1!A1:B1",
+        "options": {}
+      },
+      "id": "7bbe067d-d8bd-42b3-abf7-ee3b9e4fae86",
+      "name": "Update Sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 1,
+      "position": [
+        300,
+        280
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "60AR8HSLnBtU7OJ0",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "id": "57a8ba9f-5920-4157-85fc-e958e054f433",
+      "name": "Schedule Trigger 1",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [
+        -960,
+        600
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "operation": "append",
+        "sheetId": "{{GOOGLE_SHEET_ID}}",
+        "range": "Sheet1!A1",
+        "options": {}
+      },
+      "id": "3a5508ed-afc7-4dd9-8a99-6800eec0395a",
+      "name": "Add to Sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 1,
+      "position": [
+        -520,
+        840
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "60AR8HSLnBtU7OJ0",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "id": "c357a155-5434-421f-b436-3d2d321128aa",
+      "name": "Schedule Trigger 2",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [
+        -1020,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "sheetId": "{{GOOGLE_SHEET_ID}}",
+        "range": "Sheet1!A1:B",
+        "options": {}
+      },
+      "id": "7289559c-1e40-40f8-9af3-56350217c690",
+      "name": "Google Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 1,
+      "position": [
+        -820,
+        220
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "60AR8HSLnBtU7OJ0",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "hasOutputParser": true,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.8,
+      "position": [
+        -660,
+        140
+      ],
+      "id": "0e8be2b2-d80e-4f53-8cf4-b6638259f3fa",
+      "name": "AI Agent1"
+    },
+    {
+      "parameters": {
+        "hasOutputParser": true,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.8,
+      "position": [
+        -320,
+        140
+      ],
+      "id": "c9701464-0ce3-4d75-9cf5-2e971ff58722",
+      "name": "AI Agent2"
+    },
+    {
+      "parameters": {
+        "resource": "video",
+        "operation": "upload",
+        "title": "jabba nachu",
+        "regionCode": "IN",
+        "categoryId": "1",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.youTube",
+      "typeVersion": 1,
+      "position": [
+        60,
+        280
+      ],
+      "id": "06498852-d0d5-4953-a231-eb2f51c4f978",
+      "name": "YouTube",
+      "credentials": {
+        "youTubeOAuth2Api": {
+          "id": "Bgnu4xE29adNAZkU",
+          "name": "YouTube account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "ten topics on trending reels ",
+        "hasOutputParser": true,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.8,
+      "position": [
+        -740,
+        560
+      ],
+      "id": "b176ee3d-9ee1-4942-bc4f-d1e99b1f1601",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "output.code",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        -920,
+        820
+      ],
+      "id": "7a04ca26-7a85-4a49-8d9d-c7fc6e00fcc8",
+      "name": "Split Out"
+    },
+    {
+      "parameters": {},
+      "id": "273459e8-3bd8-4bc7-b961-5fbb950e9367",
+      "name": "Loop Over Items",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        -740,
+        840
+      ]
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n  \"mode\": \"runOnceForEachItem\",\n  \"code\": \"const response = $json[\\\"output\\\"];\\n\\n// Try to extract topics using basic text splitting\\nlet topics = response\\n  .split('\\\\n')                       // split by new lines\\n  .map(t => t.replace(/^\\\\d+\\\\.\\\\s*/, '')) // remove numbers like '1. '\\n  .map(t => t.trim())               // clean spaces\\n  .filter(t => t.length > 0);       // remove empty lines\\n\\n// Only return the first 10\\ntopics = topics.slice(0, 10);\\n\\nreturn [{ json: { topics } }];\"\n}\n"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.2,
+      "position": [
+        -560,
+        700
+      ],
+      "id": "f746cbfb-14a5-4eeb-8328-c8c80c01737d",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -1020,
+        140
+      ],
+      "id": "c0a900a1-5545-4155-8614-b94f390e1ef2",
+      "name": "When clicking ‘Test workflow’"
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.2,
+      "position": [
+        -660,
+        360
+      ],
+      "id": "6b822375-d6c7-4211-839a-dfa6933f8bca",
+      "name": "Structured Output Parser1"
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.2,
+      "position": [
+        -180,
+        360
+      ],
+      "id": "e7dd743f-0989-4a61-841f-e56eb43aed5c",
+      "name": "Structured Output Parser2"
+    },
+    {
+      "parameters": {
+        "content": "## Ideas Scraper\n",
+        "height": 440,
+        "width": 740,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -1060,
+        540
+      ],
+      "id": "75fec550-8bcc-4b1d-9ff5-8b2becc410b3",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "## Intro/Outro Generator \n",
+        "height": 440,
+        "width": 1020,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -1060,
+        60
+      ],
+      "id": "a70dc4f9-ff46-4a1f-99b4-31749770f674",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "## Video Generation\n\n",
+        "height": 520,
+        "width": 380,
+        "color": 7
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        100,
+        460
+      ],
+      "id": "d3ef1607-ec66-4d97-8513-788913040791",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "content": "## YT Uploader\n",
+        "height": 440,
+        "width": 480
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "08767521-d821-4f81-9d20-7d1d04aa7270",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "content": "## Error\n",
+        "height": 200,
+        "width": 200,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -220,
+        520
+      ],
+      "id": "2e464dc8-b7bc-4db7-b051-6cbdb9b1b909",
+      "name": "Sticky Note4"
+    },
+    {
+      "parameters": {
+        "content": "## Polling\n",
+        "height": 200,
+        "color": 2
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -240,
+        740
+      ],
+      "id": "1bd75ec4-0755-434e-8642-8c281c69ee63",
+      "name": "Sticky Note5"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4o-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        -420,
+        360
+      ],
+      "id": "2ee23469-71d3-4076-9b97-4598be596891",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "hqj2K2vaKn5gODe1",
+          "name": "OpenAi account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4o-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        -760,
+        700
+      ],
+      "id": "5115a8b0-f854-4071-bb82-7b320a18c2fe",
+      "name": "OpenAI Chat Model1",
+      "credentials": {
+        "openAiApi": {
+          "id": "LfydCjpd5T3bA5iv",
+          "name": "OpenAi account 4"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Created Video",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Polling",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Polling",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger 2": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "150 Sec": {
+      "main": [
+        [
+          {
+            "node": "Get Video",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Video": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Sheets": {
+      "main": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent1": {
+      "main": [
+        [
+          {
+            "node": "AI Agent2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent2": {
+      "main": [
+        [
+          {
+            "node": "Generate Video",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Video": {
+      "main": [
+        [
+          {
+            "node": "150 Sec",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download Video": {
+      "main": [
+        [
+          {
+            "node": "YouTube",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger 1": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Split Out",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Add to Sheet": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [
+          {
+            "node": "Add to Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When clicking ‘Test workflow’": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser1": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser2": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI Agent2",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Polling": {
+      "main": [
+        [
+          {
+            "node": "Get Video",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Created Video": {
+      "main": [
+        [
+          {
+            "node": "Download Video",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "YouTube": {
+      "main": [
+        [
+          {
+            "node": "Update Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent2",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "AI Agent1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "90c81681-bf47-4688-8ca9-cfa42d363b0e",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "4041d0151a13b41dd85de0a75cf4a36bb5e6ccc2b37a494f25fa75d429f9bc1c"
+  },
+  "id": "rExHlPh38vQaEUfH",
+  "tags": []
+}

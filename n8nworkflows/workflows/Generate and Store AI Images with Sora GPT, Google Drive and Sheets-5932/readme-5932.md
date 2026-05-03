@@ -1,0 +1,313 @@
+Generate and Store AI Images with Sora GPT, Google Drive and Sheets
+
+https://n8nworkflows.xyz/workflows/generate-and-store-ai-images-with-sora-gpt--google-drive-and-sheets-5932
+
+
+# Generate and Store AI Images with Sora GPT, Google Drive and Sheets
+
+### 1. Workflow Overview
+
+This workflow automates the generation, storage, and logging of AI-generated images using the Sora GPT Image API, Google Drive, and Google Sheets. It enables users to submit a prompt along with an image URL via a form, which is then processed by the AI to create a new image based on the inputs. The generated image is converted from base64 to a binary file, uploaded to Google Drive for storage, and logged with relevant metadata in Google Sheets for easy tracking.
+
+**Logical Blocks:**
+
+- **1.1 Input Reception**  
+  Captures user input (prompt and image URL) through a form submission.
+
+- **1.2 AI Image Generation**  
+  Sends the input data to the Sora GPT Image API to generate a new image.
+
+- **1.3 Base64 Image Conversion**  
+  Converts the base64 encoded image data returned by the API into a binary image file.
+
+- **1.4 Google Drive Upload**  
+  Uploads the generated image file to a specified folder on Google Drive.
+
+- **1.5 Google Sheets Logging**  
+  Logs the image metadata (prompt, file name, generation date) into a Google Sheets document.
+
+---
+
+### 2. Block-by-Block Analysis
+
+#### 2.1 Input Reception
+
+**Overview:**  
+This block triggers the workflow when a user submits a form containing a prompt and an image URL. It validates the required fields before proceeding.
+
+**Nodes Involved:**  
+- On form submission
+
+**Node Details:**  
+- **Name:** On form submission  
+- **Type:** `formTrigger` (n8n-nodes-base.formTrigger)  
+- **Configuration:**  
+  - Form Title: "Image to Image Using GPT Sora"  
+  - Form Fields:  
+    - Prompt (textarea, required)  
+    - Image URL (required)  
+  - Webhook ID: Unique identifier for receiving form submissions  
+- **Expressions/Variables:**  
+  - Accesses form inputs via `$json.Prompt` and `$json['Image url']`  
+- **Connections:** Output connects to the HTTP Request node  
+- **Potential Failures:**  
+  - Missing required fields  
+  - Webhook not reachable or misconfigured  
+  - Form submission timeout or invalid data format  
+- **Version Requirements:** 2.2 or higher for formTrigger node type
+
+---
+
+#### 2.2 AI Image Generation
+
+**Overview:**  
+This block sends the user’s prompt and image URL to the Sora GPT Image API via an HTTP POST request, requesting a new image generation.
+
+**Nodes Involved:**  
+- HTTP Request
+
+**Node Details:**  
+- **Name:** HTTP Request  
+- **Type:** `httpRequest` (n8n-nodes-base.httpRequest)  
+- **Configuration:**  
+  - URL: `https://sora-gpt-image.p.rapidapi.com/ai-img/img-to-img.php`  
+  - Method: POST  
+  - Headers:  
+    - `x-rapidapi-host`: `sora-gpt-image.p.rapidapi.com`  
+    - `x-rapidapi-key`: User’s RapidAPI key (must be provided)  
+  - Body Parameters:  
+    - `prompt`: from form input `$json.Prompt`  
+    - `img_url`: from form input `$json['Image url']`  
+    - `width`: 1024  
+    - `height`: 1024  
+  - Sends headers and body as POST form data  
+- **Expressions/Variables:**  
+  - Injects form data dynamically via expressions  
+- **Connections:** Output connects to the Code node  
+- **Potential Failures:**  
+  - Authentication errors due to invalid or missing API key  
+  - API rate limits or downtime  
+  - Invalid or unreachable image URL causing API failure  
+  - Timeout or network errors  
+- **Version Requirements:** 4.2 or higher for advanced HTTP request features
+
+---
+
+#### 2.3 Base64 Image Conversion
+
+**Overview:**  
+Processes the base64-encoded image string received from the API response and converts it into a binary image file suitable for uploading.
+
+**Nodes Involved:**  
+- Code
+
+**Node Details:**  
+- **Name:** Code  
+- **Type:** `code` (n8n-nodes-base.code)  
+- **Function:**  
+  - Extracts base64 string from API response (`image_base64` field)  
+  - Cleans any prefix like `data:image/jpeg;base64,`  
+  - Converts base64 string into a binary Buffer  
+  - Sets file metadata: mimeType as `image/jpeg`, filename as `output.jpg`  
+- **Code Summary:**  
+```js
+const base64String = $input.first().json.image_base64;
+const cleanedBase64 = base64String.includes(",") ? base64String.split(",")[1] : base64String;
+return [{
+  binary: {
+    data: {
+      data: Buffer.from(cleanedBase64, 'base64'),
+      mimeType: 'image/jpeg',
+      fileName: 'output.jpg'
+    }
+  }
+}];
+```
+- **Connections:** Output connects to Google Drive node  
+- **Potential Failures:**  
+  - Missing or malformed base64 data in API response  
+  - Errors in Buffer conversion  
+  - Unsupported image format if API changes output format  
+- **Version Requirements:** 2 or higher for code node capabilities
+
+---
+
+#### 2.4 Google Drive Upload
+
+**Overview:**  
+Uploads the binary image file generated by the previous node to a specified Google Drive folder for storage and sharing.
+
+**Nodes Involved:**  
+- Google Drive
+
+**Node Details:**  
+- **Name:** Google Drive  
+- **Type:** `googleDrive` (n8n-nodes-base.googleDrive)  
+- **Configuration:**  
+  - File Name: Uses the filename from the binary data (`{{$binary.data.fileName}}`)  
+  - Folder ID: User-specified Google Drive folder URL or ID (must be configured)  
+  - Drive ID: Optional, defaults to user's Drive if empty  
+  - Authentication: Google Service Account credentials  
+- **Connections:** Output connects to Google Sheets node  
+- **Potential Failures:**  
+  - Authentication errors if service account lacks proper permissions  
+  - Invalid folder ID or missing folder access  
+  - File upload limits or quota exceeded errors  
+  - Network or API downtime  
+- **Version Requirements:** Version 3 or higher for Google Drive node features
+
+---
+
+#### 2.5 Google Sheets Logging
+
+**Overview:**  
+Logs the prompt, generated image filename, and generation date/time into a Google Sheets document for record keeping and tracking.
+
+**Nodes Involved:**  
+- Google Sheets
+
+**Node Details:**  
+- **Name:** Google Sheets  
+- **Type:** `googleSheets` (n8n-nodes-base.googleSheets)  
+- **Configuration:**  
+  - Operation: Append row  
+  - Document ID: Google Sheets document URL or ID (must be configured)  
+  - Sheet Name: “Sheet1” or target sheet in the document  
+  - Columns mapped:  
+    - Image: `{{$binary.data.fileName}}` (filename uploaded to Drive)  
+    - Prompt: `{{$node["On form submission"].json.Prompt}}`  
+    - Generated Date: `{{$node["On form submission"].json.submittedAt}}` (form submission timestamp)  
+  - Authentication: Google Service Account credentials  
+- **Connections:** None (end of workflow)  
+- **Potential Failures:**  
+  - Authentication or permission issues with Google Sheets API  
+  - Invalid document ID or sheet name  
+  - Data mapping errors if input fields are missing  
+  - API quota limits  
+- **Version Requirements:** 4.6 or higher for the latest Google Sheets features
+
+---
+
+### 3. Summary Table
+
+| Node Name          | Node Type           | Functional Role                          | Input Node(s)       | Output Node(s)      | Sticky Note                                                                                              |
+|--------------------|---------------------|----------------------------------------|---------------------|---------------------|--------------------------------------------------------------------------------------------------------|
+| On form submission  | formTrigger         | Receive user input from form (prompt + image URL) | None                | HTTP Request        | Triggers on user form submission; collects prompt and image URL inputs                                  |
+| HTTP Request       | httpRequest          | Send input data to Sora GPT Image API for image generation | On form submission  | Code                | Sends POST request with prompt and image URL; requires RapidAPI key                                   |
+| Code               | code                 | Convert base64 image data to binary image file | HTTP Request        | Google Drive        | Converts base64 string to binary JPEG file for upload                                                  |
+| Google Drive       | googleDrive          | Upload generated image file to Google Drive | Code                | Google Sheets       | Uploads image file to specified Google Drive folder                                                    |
+| Google Sheets      | googleSheets         | Log image details (prompt, filename, date) to Google Sheets | Google Drive        | None                | Records metadata of generated images for tracking                                                     |
+| Sticky Note        | stickyNote           | Documentation and explanation           | None                | None                | Provides detailed explanation of the entire workflow                                                   |
+| Sticky Note1       | stickyNote           | Documentation of form submission node   | None                | None                | Explains formTrigger node configuration and function                                                  |
+| Sticky Note2       | stickyNote           | Documentation of HTTP Request node      | None                | None                | Explains HTTP request to Sora GPT Image API                                                           |
+| Sticky Note3       | stickyNote           | Documentation of base64 conversion code | None                | None                | Explains the Code node for base64 image processing                                                    |
+| Sticky Note4       | stickyNote           | Documentation of Google Drive upload    | None                | None                | Explains Google Drive node configuration and upload process                                           |
+| Sticky Note5       | stickyNote           | Documentation of Google Sheets logging  | None                | None                | Explains Google Sheets node configuration and logging details                                         |
+
+---
+
+### 4. Reproducing the Workflow from Scratch
+
+1. **Create Form Trigger Node: "On form submission"**  
+   - Node Type: `formTrigger`  
+   - Configure Form:  
+     - Title: "Image to Image Using GPT Sora"  
+     - Add two required fields:  
+       - Prompt (textarea)  
+       - Image URL (text)  
+   - Note the webhook URL generated for this node.
+
+2. **Create HTTP Request Node: "HTTP Request"**  
+   - Node Type: `httpRequest`  
+   - Connect input from **On form submission** node  
+   - Configure:  
+     - URL: `https://sora-gpt-image.p.rapidapi.com/ai-img/img-to-img.php`  
+     - Method: POST  
+     - Headers:  
+       - `x-rapidapi-host`: `sora-gpt-image.p.rapidapi.com`  
+       - `x-rapidapi-key`: your RapidAPI key for Sora GPT Image API  
+     - Body Parameters (form data):  
+       - `prompt`: Expression `{{$json.Prompt}}`  
+       - `img_url`: Expression `{{$json['Image url']}}`  
+       - `width`: `1024`  
+       - `height`: `1024`  
+     - Enable sending headers and body parameters
+
+3. **Create Code Node: "Code"**  
+   - Node Type: `code`  
+   - Connect input from **HTTP Request** node  
+   - Paste the following JavaScript code to:  
+     - Extract `image_base64` from input JSON  
+     - Remove any prefix (e.g., `data:image/jpeg;base64,`)  
+     - Convert base64 string to binary buffer  
+     - Output binary data with mimeType `image/jpeg` and filename `output.jpg`  
+```js
+const base64String = $input.first().json.image_base64;
+const cleanedBase64 = base64String.includes(",") ? base64String.split(",")[1] : base64String;
+return [{
+  binary: {
+    data: {
+      data: Buffer.from(cleanedBase64, 'base64'),
+      mimeType: 'image/jpeg',
+      fileName: 'output.jpg'
+    }
+  }
+}];
+```
+
+4. **Create Google Drive Node: "Google Drive"**  
+   - Node Type: `googleDrive`  
+   - Connect input from **Code** node  
+   - Configure:  
+     - Authentication: Use Google Service Account credentials with Drive access  
+     - File Name: Use expression `{{$binary.data.fileName}}`  
+     - Folder ID: Set to your target Google Drive folder URL or ID  
+     - (Optional) Drive ID if using shared drives  
+   - Ensure the Service Account has write permissions on the folder
+
+5. **Create Google Sheets Node: "Google Sheets"**  
+   - Node Type: `googleSheets`  
+   - Connect input from **Google Drive** node  
+   - Configure:  
+     - Operation: Append row  
+     - Authentication: Use the same Google Service Account or another with Sheets access  
+     - Document ID: The Google Sheets document URL or ID where logs are stored  
+     - Sheet Name: For example, "Sheet1"  
+     - Column Mapping:  
+       - Image: `{{$binary.data.fileName}}` (filename from Google Drive node)  
+       - Prompt: `{{$node["On form submission"].json.Prompt}}`  
+       - Generated Date: `{{$node["On form submission"].json.submittedAt}}` (timestamp of form submission)  
+     - Ensure columns exist in the sheet matching these fields
+
+6. **Link Nodes in Sequence:**  
+   On form submission → HTTP Request → Code → Google Drive → Google Sheets
+
+7. **Credentials Setup:**  
+   - Create or import RapidAPI credentials with valid key for Sora GPT Image API  
+   - Configure Google Service Account credentials with access to both Drive and Sheets APIs  
+   - Assign credentials to respective nodes (Google Drive, Google Sheets)
+
+8. **Final Testing:**  
+   - Deploy workflow  
+   - Submit form with prompt and image URL  
+   - Validate image generation, upload to Drive, and logging in Sheets
+
+---
+
+### 5. General Notes & Resources
+
+| Note Content                                                                                                                                                                                                                                                 | Context or Link                                                                                              |
+|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------|
+| The workflow leverages the Sora GPT Image API to generate images based on a prompt and an input image URL, streamlining creative image generation for various use cases such as marketing, design, and content creation.                                     | Sora GPT Image API: https://sora-gpt-image.p.rapidapi.com/ai-img/img-to-img.php                             |
+| Google Drive integration requires a Google Service Account with proper permissions to upload files into a designated folder. Ensure the folder ID is correctly configured in the node.                                                                       | Google Drive API documentation: https://developers.google.com/drive/api                                     |
+| Google Sheets is used to log metadata for tracking and auditing generated images, requiring the corresponding Google Sheets document ID and sheet name configured in the node.                                                                                 | Google Sheets API documentation: https://developers.google.com/sheets/api                                   |
+| RapidAPI key is mandatory for authenticating with the Sora GPT Image API; ensure the key is valid and has sufficient quota.                                                                                                                                    | RapidAPI: https://rapidapi.com/                                                                                 |
+| The base64 conversion code assumes the returned image is JPEG format; if the API output format changes, update the mimeType and file extension accordingly in the Code node.                                                                                   |                                                                                                             |
+| This flow is built entirely within n8n, allowing easy modification or extension, such as adding error handling nodes, notifications, or supporting multiple image formats.                                                                                     | n8n documentation: https://docs.n8n.io/                                                                       |
+| For large scale usage, consider API rate limits and Google API quotas to prevent workflow failures. Implement retry or error handling logic if necessary.                                                                                                     |                                                                                                             |
+| The Google Sheets provided in the example is publicly accessible for reference: https://docs.google.com/spreadsheets/d/19RkfJHHLt15sIwaeN5Fgrd4BuVTacA0_mYP-gPcBVao/edit#gid=0                                                                            | Example Google Sheets                                                                                            |
+
+---
+
+**Disclaimer:**  
+The text provided originates exclusively from an automated workflow created with n8n, an integration and automation tool. This processing strictly adheres to current content policies and contains no illegal, offensive, or protected elements. All handled data is legal and public.

@@ -1,0 +1,300 @@
+Create Custom ASMR Sound Effects with ElevenLabs API and Google Drive
+
+https://n8nworkflows.xyz/workflows/create-custom-asmr-sound-effects-with-elevenlabs-api-and-google-drive-8439
+
+
+# Create Custom ASMR Sound Effects with ElevenLabs API and Google Drive
+
+### 1. Workflow Overview
+
+This workflow enables users to create custom ASMR sound effects using the ElevenLabs sound generation API, then upload the resulting MP3 file to Google Drive, and finally present a stylish web page with a direct link to listen to the generated sound. The workflow is triggered by a web form where users describe their desired ASMR sound.
+
+**Target Use Case:**  
+Creators or enthusiasts who want to generate personalized ASMR audio clips programmatically via text prompts, store them in Google Drive for easy access, and receive an immediate playback link.
+
+**Logical Blocks:**  
+- **1.1 Input Reception:** A web form collects the ASMR sound description from the user.  
+- **1.2 API Key Injection:** Securely sets the ElevenLabs API key for authentication.  
+- **1.3 Sound Generation:** Calls the ElevenLabs API to generate the ASMR audio based on user input.  
+- **1.4 Upload to Cloud Storage:** Uploads the generated MP3 to Google Drive.  
+- **1.5 Response Preparation & Presentation:** Prepares a custom HTML page with a playback link and returns it to the user.  
+- **1.6 Meta Information:** Sticky note with setup instructions and contextual information.
+
+---
+
+### 2. Block-by-Block Analysis
+
+#### 2.1 Input Reception
+
+- **Overview:**  
+  Captures the user's ASMR sound description through a web form interface.
+
+- **Nodes Involved:**  
+  - `AI ASMR Generator`
+
+- **Node Details:**
+
+  - **Node:** AI ASMR Generator  
+    - Type: Form Trigger  
+    - Role: Entry point that presents a web form to the user for text input and triggers the workflow on submission.  
+    - Configuration:  
+      - Form path: `/music-generator`  
+      - Form title: "AI ASMR Generator"  
+      - Form description prompts for an ASMR sound description.  
+      - Single required field labeled "Music" with a placeholder guiding the user to describe the ASMR sound (e.g., gentle whispering, tapping).  
+      - Button label: "Submit"  
+      - Attribution appended automatically.  
+    - Inputs: HTTP Web request via the form submission.  
+    - Outputs: JSON payload containing the user input under the key `Music` (e.g., "cat laughing").  
+    - Edge Cases:  
+      - User submits empty or invalid input (form enforces required field).  
+      - Webhook endpoint not reachable or misconfigured.  
+      - Potential delay or timeout if user connection is slow.
+
+---
+
+#### 2.2 API Key Injection
+
+- **Overview:**  
+  Sets the ElevenLabs API key as a workflow variable for use in subsequent API requests.
+
+- **Nodes Involved:**  
+  - `API Key`
+
+- **Node Details:**
+
+  - **Node:** API Key  
+    - Type: Set node  
+    - Role: Defines the environment variable `ELEVENLABS_API_KEY` containing the API key string.  
+    - Configuration:  
+      - Hardcoded string value for `ELEVENLABS_API_KEY` (placeholder `"your key"` to be replaced by actual API key).  
+    - Inputs: Receives trigger data from the form node.  
+    - Outputs: Passes along the same data enriched with the API key.  
+    - Edge Cases:  
+      - Missing or invalid API key leads to authentication errors downstream.  
+      - Key should be kept secure and not hardcoded in production; consider external credential management.  
+    - Notes: User needs to obtain their ElevenLabs API key from https://try.elevenlabs.io/api-music.
+
+---
+
+#### 2.3 Sound Generation
+
+- **Overview:**  
+  Sends the user-provided text description to ElevenLabs' sound generation API and receives an MP3 audio file.
+
+- **Nodes Involved:**  
+  - `elevenlabs_api`
+
+- **Node Details:**
+
+  - **Node:** elevenlabs_api  
+    - Type: HTTP Request node  
+    - Role: Executes a POST request to ElevenLabs API endpoint `/v1/sound-generation`.  
+    - Configuration:  
+      - URL: `https://api.elevenlabs.io/v1/sound-generation`  
+      - Method: POST  
+      - Body Parameters:  
+        - `text`: set dynamically from form input `Music` field (`{{$node["AI ASMR Generator"].json.Music}}`).  
+        - `output_format`: fixed string `"mp3_44100_128"`.  
+      - Headers:  
+        - `xi-api-key`: dynamically set from workflow variable `ELEVENLABS_API_KEY`.  
+      - Sends both body and headers in the request.  
+    - Inputs: From `API Key` node (which provides API key and user input).  
+    - Outputs: Expected to return audio content or a link to the generated MP3 file.  
+    - Edge Cases:  
+      - Authentication errors if API key is invalid or missing.  
+      - API rate limits or service downtime.  
+      - Invalid or unsupported text input causing generation failure.  
+      - Timeout or HTTP errors.  
+    - Notes: Refer to https://try.elevenlabs.io/sound-fx for API details.
+
+---
+
+#### 2.4 Upload to Cloud Storage
+
+- **Overview:**  
+  Uploads the MP3 sound file generated by ElevenLabs to Google Drive for storage and sharing.
+
+- **Nodes Involved:**  
+  - `Upload mp3`
+
+- **Node Details:**
+
+  - **Node:** Upload mp3  
+    - Type: Google Drive node  
+    - Role: Uploads a file to the configured Google Drive folder.  
+    - Configuration:  
+      - File name: `music.mp3` (static).  
+      - Drive selection: "My Drive" (default).  
+      - Folder: Root folder of Google Drive.  
+      - Credentials: Uses OAuth2 credentials for Google Drive (`Google Drive inforeole`).  
+    - Inputs: Receives the output from `elevenlabs_api` node (the MP3 data).  
+    - Outputs: Returns Google Drive file metadata including a web view link for the uploaded file.  
+    - Edge Cases:  
+      - Authentication errors if Google Drive credentials expire or are invalid.  
+      - Insufficient permissions or quota limits on Google Drive.  
+      - File overwrite if multiple uploads with same name occur (no dynamic naming here).  
+    - Notes: User must authenticate Google Drive OAuth2 in this node before use.
+
+---
+
+#### 2.5 Response Preparation & Presentation
+
+- **Overview:**  
+  Generates a customized HTML page that includes a title and a link to listen to the uploaded ASMR sound, and sends this as the HTTP response to the user.
+
+- **Nodes Involved:**  
+  - `prepare reponse`  
+  - `display mp3`
+
+- **Node Details:**
+
+  - **Node:** prepare reponse  
+    - Type: HTML node  
+    - Role: Prepares a visually styled HTML snippet to show the user.  
+    - Configuration:  
+      - Contains inline HTML with embedded dynamic expressions:  
+        - Displays an emoji 🎧 and a heading "Your ASMR Sound is Ready!"  
+        - Shows the ASMR title from `$json.asmrTitle` or defaults to "Soothing Whispers".  
+        - Provides a clickable link to `$json.webViewLink`, which should be the public Google Drive link to the MP3 file.  
+      - Styling includes dark theme, gradients, and responsive layout.  
+    - Inputs: Receives Google Drive file metadata to extract the web view link and optionally the title.  
+    - Outputs: Passes the HTML string to the next node.  
+    - Edge Cases:  
+      - Missing or malformed URL breaks the link.  
+      - If `asmrTitle` is undefined, defaults gracefully.  
+      - HTML rendering issues on some browsers or email clients.  
+
+  - **Node:** display mp3  
+    - Type: Form node (completion response)  
+    - Role: Sends the prepared HTML as the HTTP response to the original form submission.  
+    - Configuration:  
+      - Operation: `completion` (respond to the form submission).  
+      - Responds with the `showText` mode, showing the `responseText` which is the HTML from previous node.  
+    - Inputs: Receives HTML from `prepare reponse`.  
+    - Outputs: HTTP response to the user.  
+    - Edge Cases:  
+      - Network or webhook timeout if response is delayed.  
+      - Cross-browser compatibility of the HTML content.
+
+---
+
+#### 2.6 Meta Information
+
+- **Overview:**  
+  Provides setup instructions, usage notes, and context for users or administrators reviewing the workflow.
+
+- **Nodes Involved:**  
+  - `Sticky Note`
+
+- **Node Details:**
+
+  - **Node:** Sticky Note  
+    - Type: Sticky Note (visual comment)  
+    - Role: Documents the workflow purpose, setup instructions, and usage tips.  
+    - Content:  
+      - Explains that the workflow generates ASMR sounds with ElevenLabs API and uploads to Google Drive.  
+      - Lists setup steps: setting API key, connecting Google Drive OAuth, activating workflow.  
+      - Provides relevant URLs for API key acquisition.  
+    - Inputs/Outputs: None (documentation only).  
+    - Edge Cases: None.
+
+---
+
+### 3. Summary Table
+
+| Node Name         | Node Type          | Functional Role                       | Input Node(s)         | Output Node(s)       | Sticky Note                                                                                                            |
+|-------------------|--------------------|------------------------------------|-----------------------|----------------------|------------------------------------------------------------------------------------------------------------------------|
+| AI ASMR Generator  | Form Trigger       | Collects ASMR description input    | (Webhook trigger)     | API Key               | Provides web form for user input; triggers workflow on submission.                                                     |
+| API Key           | Set                | Injects ElevenLabs API key          | AI ASMR Generator     | elevenlabs_api        | User must replace placeholder with actual key from https://try.elevenlabs.io/api-music                                  |
+| elevenlabs_api    | HTTP Request       | Calls ElevenLabs sound generation   | API Key               | Upload mp3            | Authenticated POST to API; sends user text; expects MP3 audio response.                                                |
+| Upload mp3        | Google Drive       | Uploads MP3 to Google Drive         | elevenlabs_api        | prepare reponse       | Requires Google Drive OAuth2 credentials; uploads to root folder; file named music.mp3                                |
+| prepare reponse   | HTML               | Creates styled HTML response         | Upload mp3            | display mp3           | Generates a dark-themed HTML page with playback link to uploaded sound.                                               |
+| display mp3       | Form               | Sends HTML response to user         | prepare reponse       | (HTTP response)       | Displays the generated ASMR sound link in browser after form submission.                                              |
+| Sticky Note       | Sticky Note        | Documentation and Setup Instructions | None                  | None                  | ## Generate ASMR with the ElevenLabs API and upload to Google Drive\n\n### What it does\nThis workflow provides...    |
+
+---
+
+### 4. Reproducing the Workflow from Scratch
+
+1. **Create the Form Trigger Node:**  
+   - Add a **Form Trigger** node named `AI ASMR Generator`.  
+   - Set the webhook path to `music-generator`.  
+   - Title: "AI ASMR Generator".  
+   - Description: "What kind of ASMR sound or noise do you want to create?"  
+   - Add a single form field: Label "Music", placeholder "Describe your ASMR sound (e.g., gentle whispering, slow tapping on wood, crinkling paper).", required.  
+   - Set button label to "Submit".  
+   - Save.
+
+2. **Add a Set Node to Store API Key:**  
+   - Add a **Set** node named `API Key`.  
+   - Create a string variable `ELEVENLABS_API_KEY`.  
+   - Enter your ElevenLabs API key as the value.  
+   - Connect `AI ASMR Generator` output to this node input.  
+   - Save.
+
+3. **Add HTTP Request Node for ElevenLabs API:**  
+   - Add an **HTTP Request** node named `elevenlabs_api`.  
+   - Set method to `POST`.  
+   - URL: `https://api.elevenlabs.io/v1/sound-generation`.  
+   - In Body Parameters, add:  
+     - `text`: Expression `{{$node["AI ASMR Generator"].json.Music}}`  
+     - `output_format`: Fixed string `mp3_44100_128`.  
+   - In Headers, add:  
+     - `xi-api-key`: Expression `{{$json.ELEVENLABS_API_KEY}}`.  
+   - Enable sending both body and headers.  
+   - Connect `API Key` output to this node input.  
+   - Save.
+
+4. **Add Google Drive Node to Upload MP3:**  
+   - Add a **Google Drive** node named `Upload mp3`.  
+   - Set operation to upload.  
+   - File name: `music.mp3`.  
+   - Select "My Drive" as Drive.  
+   - Folder: Root folder.  
+   - Configure OAuth2 credentials for Google Drive authentication; create or select existing credential.  
+   - Connect `elevenlabs_api` output to this node input.  
+   - Save.
+
+5. **Add HTML Node to Prepare Response:**  
+   - Add an **HTML** node named `prepare reponse`.  
+   - Paste the provided inline HTML template that includes placeholders:  
+     - `{{ $json.asmrTitle || "Soothing Whispers" }}` for title.  
+     - `{{ $json.webViewLink }}` for the Google Drive file link.  
+   - Connect `Upload mp3` output to this node input.  
+   - Save.
+
+6. **Add Form Node to Display the HTML Response:**  
+   - Add a **Form** node named `display mp3`.  
+   - Set operation to `completion`.  
+   - Set response mode to `showText`.  
+   - Set response text to `={{ $json.html }}` (expression to output HTML from previous node).  
+   - Connect `prepare reponse` output to this node input.  
+   - Save.
+
+7. **Connect Workflow Nodes Sequentially:**  
+   - `AI ASMR Generator` → `API Key` → `elevenlabs_api` → `Upload mp3` → `prepare reponse` → `display mp3`.
+
+8. **Add a Sticky Note (Optional):**  
+   - Add a **Sticky Note** node with content describing workflow purpose and setup instructions.  
+   - Position for clarity in editor.
+
+9. **Activate the Workflow:**  
+   - Save and activate the workflow.  
+   - Use the webhook URL from `AI ASMR Generator` node to open the form and test.
+
+---
+
+### 5. General Notes & Resources
+
+| Note Content                                                                                                 | Context or Link                                |
+|--------------------------------------------------------------------------------------------------------------|------------------------------------------------|
+| ElevenLabs API documentation and sound generation demo                                                      | https://try.elevenlabs.io/sound-fx             |
+| Obtain ElevenLabs Music API key here                                                                        | https://try.elevenlabs.io/api-music             |
+| Google Drive OAuth2 must be configured in the Upload mp3 node with sufficient scopes for file upload         | n8n Google Drive OAuth2 credential setup       |
+| The workflow is designed to be user-friendly with a web form input and instant audio playback link delivery | Suitable for ASMR creators and sound designers |
+
+---
+
+**Disclaimer:**  
+This document describes an automated workflow created with n8n, strictly complying with content policies. All data processed is legal and public.

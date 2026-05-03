@@ -1,0 +1,132 @@
+Check workflow templates against Creator Hub guidelines with Gemini and Gmail
+
+https://n8nworkflows.xyz/workflows/check-workflow-templates-against-creator-hub-guidelines-with-gemini-and-gmail-13769
+
+
+# Check workflow templates against Creator Hub guidelines with Gemini and Gmail
+
+# n8n Template Approval Checker Reference
+
+This document provides a technical breakdown and reconstruction guide for the **Check workflow templates against Creator Hub guidelines with Gemini and Gmail** workflow.
+
+## 1. Workflow Overview
+The purpose of this workflow is to automate the pre-submission audit of n8n workflow templates. It ensures that creators adhere to the official n8n Creator Hub guidelines by performing a real-time comparison between live guidelines and a submitted workflow JSON.
+
+The workflow is organized into five functional blocks:
+1.  **Input Reception:** Collects the workflow file and user metadata via an n8n Form.
+2.  **Guideline Scraping:** Fetches live data from four specific Notion pages using the Splitbee API and parses the blocks into readable text.
+3.  **AI Criteria Generation:** Uses Gemini to transform raw scraping data into a structured, numbered pass/fail checklist.
+4.  **File Review via Gemini API:** Uploads the generated checklist and the user's workflow to the Gemini Files API for a deep-context analysis.
+5.  **Results Delivery:** Generates a professional HTML report and emails it to the user via Gmail.
+
+---
+
+## 2. Block-by-Block Analysis
+
+### 2.1 Input Reception
+**Overview:** This block acts as the entry point, providing a user-friendly interface for workflow submission.
+-   **Submit workflow for review** (n8n-nodes-base.formTrigger): 
+    -   **Technical Role:** Webhook-based trigger.
+    -   **Configuration:** Collects `Workflow JSON File` (binary/file), `Template Title` (string), and `Email Address` (string).
+    -   **Edge Cases:** Invalid JSON file types or empty fields will prevent the workflow from proceeding.
+
+### 2.2 Scraping Guidelines
+**Overview:** Retrieves the latest official rules directly from Notion.
+-   **Generate Notion API URLs** (n8n-nodes-base.code): 
+    -   **Technical Role:** Data transformation.
+    -   **Configuration:** Contains an array of four Notion Page IDs. It maps them to the Splitbee API endpoint (`https://notion-api.splitbee.io/v1/page/`).
+-   **Fetch guideline pages from Notion** (n8n-nodes-base.httpRequest): 
+    -   **Technical Role:** External API integration.
+    -   **Configuration:** GET request to the URLs generated in the previous step.
+-   **Combine all fetched pages** (n8n-nodes-base.aggregate): 
+    -   **Technical Role:** Data batching.
+    -   **Configuration:** Aggregates all HTTP responses into a single array for processing.
+-   **Extract text from Notion blocks** (n8n-nodes-base.code): 
+    -   **Technical Role:** Content Parser.
+    -   **Logic:** Iterates through complex Notion JSON objects (headers, bullets, callouts) and flattens them into a single string of readable text. Includes a fallback message if scraping fails.
+
+### 2.3 AI Criteria Generation
+**Overview:** Converts the scraped text into a machine-actionable checklist.
+-   **Generate approval checklist with AI** (@n8n/n8n-nodes-langchain.chainLlm): 
+    -   **Technical Role:** Language Model Chain.
+    -   **Configuration:** Uses a system prompt to identify node counts, sticky note requirements, and technical metadata rules from the scraped text.
+-   **Google Gemini for criteria generation** (@n8n/n8n-nodes-langchain.lmChatGoogleGemini): 
+    -   **Technical Role:** LLM Provider.
+    -   **Model:** `gemini-3-pro-preview`.
+
+### 2.4 Upload and Review
+**Overview:** Prepares files for long-context analysis and executes the final review.
+-   **Convert criteria and workflow to files** (n8n-nodes-base.code): 
+    -   **Technical Role:** Binary preparation.
+    -   **Logic:** Converts the text checklist and the workflow JSON into binary buffers (`criteria.txt` and `workflow.json`) so they can be uploaded to Gemini.
+-   **Upload files to Gemini Files API** (n8n-nodes-base.httpRequest): 
+    -   **Technical Role:** Multi-part file upload.
+    -   **Configuration:** POST to Google's generative language API using `X-Goog-Upload-Command`. 
+-   **Combine uploaded file references** (n8n-nodes-base.aggregate): 
+    -   **Technical Role:** Data synchronization.
+    -   **Role:** Ensures both file URIs (criteria and workflow) are available for the final AI call.
+-   **Review workflow against criteria** (n8n-nodes-base.httpRequest): 
+    -   **Technical Role:** High-context analysis.
+    -   **Model:** `gemini-3-flash-preview`.
+    -   **Prompt:** Instructs the AI to compare the two files and output a formatted HTML body with an "Overall Verdict" and "Score".
+
+### 2.5 Email Results
+**Overview:** Notifies the user of the outcome.
+-   **Send review results via email** (n8n-nodes-base.gmail): 
+    -   **Technical Role:** Output node.
+    -   **Configuration:** Sends the HTML content generated by Gemini to the email address provided in Step 1.
+
+---
+
+## 3. Summary Table
+
+| Node Name | Node Type | Functional Role | Input Node(s) | Output Node(s) | Sticky Note |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| Submit workflow for review | Form Trigger | User Input | None | Generate Notion API URLs | Form input: Collects the workflow JSON file, template title, and email address for results delivery. |
+| Generate Notion API URLs | Code | URL Generator | Submit workflow... | Fetch guideline pages... | Scrape guidelines: Fetches four Creator Hub pages via the Notion unofficial API... |
+| Fetch guideline pages from Notion | HTTP Request | Data Retrieval | Generate Notion... | Combine all fetched pages | Scrape guidelines: Fetches four Creator Hub pages via the Notion unofficial API... |
+| Combine all fetched pages | Aggregate | Data Batching | Fetch guideline... | Extract text from blocks | Scrape guidelines: Fetches four Creator Hub pages via the Notion unofficial API... |
+| Extract text from Notion blocks | Code | Data Parsing | Combine all... | Generate approval checklist... | Scrape guidelines: Fetches four Creator Hub pages via the Notion unofficial API... |
+| Generate approval checklist with AI | Basic LLM Chain | Logic Generator | Extract text... | Convert criteria... | AI criteria generation: Gemini reads the scraped guidelines and outputs a numbered pass/fail checklist. |
+| Google Gemini for criteria generation | Gemini Chat Model | AI Engine | None | Generate approval checklist... | AI criteria generation: Gemini reads the scraped guidelines and outputs a numbered pass/fail checklist. |
+| Convert criteria and workflow to files | Code | Binary Prep | Generate approval... | Upload files to Gemini... | Upload and review: Both files are uploaded to Gemini Files API, then a second Gemini call reviews the workflow. |
+| Upload files to Gemini Files API | HTTP Request | File Storage | Convert criteria... | Combine uploaded... | Upload and review: Both files are uploaded to Gemini Files API, then a second Gemini call reviews the workflow. |
+| Combine uploaded file references | Aggregate | Sync references | Upload files... | Review workflow... | Upload and review: Both files are uploaded to Gemini Files API, then a second Gemini call reviews the workflow. |
+| Review workflow against criteria | HTTP Request | Audit Engine | Combine uploaded... | Send review results... | Upload and review: Both files are uploaded to Gemini Files API, then a second Gemini call reviews the workflow. |
+| Send review results via email | Gmail | Notification | Review workflow... | None | Email results: The HTML review report is sent to the email address provided in the form. |
+
+---
+
+## 4. Reproducing the Workflow from Scratch
+
+1.  **Trigger Setup:** Create a **Form Trigger** node. Add three fields: `Workflow JSON File` (File), `Template Title` (Text), and `Email Address` (Text).
+2.  **Notion Logic:**
+    -   Add a **Code Node** to output an array of Notion Page IDs (e.g., `7bd2cbe0fce0449198ecb23ff4a2f76f`).
+    -   Connect an **HTTP Request** node (GET) using the expression `https://notion-api.splitbee.io/v1/page/{{ $json.pageId }}`.
+    -   Add an **Aggregate Node** to "Aggregate all items" into a single array.
+    -   Add another **Code Node** to parse the `data` array by looping through blocks and checking for `block.value.type` (header, bulleted_list, etc.).
+3.  **Checklist Generation:**
+    -   Add a **Chain LLM** node. 
+    -   Configure the prompt to take the text from the previous Code node and ask for a structured pass/fail checklist.
+    -   Connect a **Google Gemini Chat Model** node to the LLM Chain (requires a Gemini API Key).
+4.  **The Review Engine:**
+    -   Add a **Code Node** to prepare binary data. Use `this.helpers.prepareBinaryData()` to create two items: one for the AI checklist text and one for the original workflow JSON.
+    -   Add an **HTTP Request** node to POST to `https://generativelanguage.googleapis.com/upload/v1beta/files`. Use `binaryData` as the body and set custom headers for `X-Goog-Upload-Command: upload, finalize`.
+    -   Add an **Aggregate Node** to group the two resulting file URIs.
+    -   Add an **HTTP Request** node to POST to the Gemini `generateContent` endpoint. Use the URIs in the `fileData` part of the JSON body. Request the output in HTML format.
+5.  **Notification:**
+    -   Add a **Gmail** node. Map the `To` field to the email from the Form Trigger and the `Body` to the HTML output from the review node.
+6.  **Credentials:**
+    -   **Google Palm API:** Create an API key in Google AI Studio.
+    -   **Gmail OAuth2:** Create a Google Cloud project with the Gmail API enabled.
+
+---
+
+## 5. General Notes & Resources
+
+| Note Content | Context or Link |
+| :--- | :--- |
+| Uses the unofficial Splitbee Notion API | `https://notion-api.splitbee.io/` |
+| Requires Gemini 1.5 Pro or Flash for file uploads | Used for deep workflow analysis |
+| Official n8n Creator Hub guidelines source | [n8n Notion Documentation](https://n8n.notion.site/7bd2cbe0fce0449198ecb23ff4a2f76f) |
+| HTML Email compatibility | Output uses inline CSS for maximum client support |

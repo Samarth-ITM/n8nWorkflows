@@ -1,0 +1,363 @@
+Real-time Registration Form Tracking with Google Sheets and Gmail Notifications
+
+https://n8nworkflows.xyz/workflows/real-time-registration-form-tracking-with-google-sheets-and-gmail-notifications-9580
+
+
+# Real-time Registration Form Tracking with Google Sheets and Gmail Notifications
+
+### 1. Workflow Overview
+
+This workflow, named **Gracewell Automated Registration Tracker Suite**, automates real-time tracking of a registration form’s submission status using Google Sheets and sends notification emails via Gmail. It is designed for use cases such as educational institutions or organizations needing to monitor participant form submissions, send reminders to those who have not submitted, and acknowledge those who have.
+
+The workflow consists of three main logical blocks:
+
+- **1.1 Form Dashboard Generation:** Reads student and form response data from Google Sheets, compares submission status, and generates an HTML dashboard showing completed and pending registrations. Exposes a webhook endpoint serving this dashboard.
+
+- **1.2 Sending Acknowledgement Emails:** Triggered via webhook, this block identifies students who completed the form and sends thank-you emails individually.
+
+- **1.3 Sending Reminder Emails:** Also triggered via webhook, this block identifies students who have not submitted the form and sends reminder emails to them.
+
+Each block uses data integration nodes (Google Sheets), data transformation (Code nodes), and notification nodes (Gmail), orchestrated via webhooks and merges.
+
+---
+
+### 2. Block-by-Block Analysis
+
+#### 2.1 Form Dashboard Generation
+
+- **Overview:**  
+  This block reads student registration and form response data from two Google Sheets documents, normalizes and compares the registration numbers to determine who has and has not submitted the form, compiles a summary, and generates an interactive HTML dashboard. The dashboard includes buttons to send reminders or acknowledgements via webhook calls.
+
+- **Nodes Involved:**  
+  - Webhook1 (Webhook trigger)  
+  - Google Sheets (Student List sheet)  
+  - Google Sheets1 (Form Responses sheet)  
+  - Merge (Combines student and response data)  
+  - Code (Processes data and generates dashboard HTML)  
+  - Respond to Webhook (Returns HTML dashboard response)  
+  - Two Sticky Notes (informational)
+
+- **Node Details:**
+
+  - **Webhook1**  
+    - *Type:* Webhook (HTTP Trigger)  
+    - *Role:* Entry point for dashboard requests; listens on a unique path.  
+    - *Configuration:* Path set to a UUID string, response mode set to "responseNode" to defer response to downstream node.  
+    - *Connections:* Outputs to Google Sheets and Google Sheets1 nodes.  
+    - *Failure modes:* HTTP path conflicts, webhook downtime, request timeout.  
+
+  - **Google Sheets**  
+    - *Type:* Google Sheets (Read operation)  
+    - *Role:* Reads student registration data from a specified spreadsheet and sheet ("Sheet1" of document ID "1-i55...").  
+    - *Configuration:* Uses OAuth2 credentials for Google Sheets. Reads entire sheet (no filters).  
+    - *Connections:* Output feeds into Merge node.  
+    - *Failure modes:* Auth issues, quota limits, sheet access permission denied.  
+
+  - **Google Sheets1**  
+    - *Type:* Google Sheets (Read operation)  
+    - *Role:* Reads form responses data from another spreadsheet ("Form Responses 1" sheet of document ID "10eIZ...").  
+    - *Configuration:* OAuth2 credentials reused.  
+    - *Connections:* Output feeds into Merge node.  
+    - *Failure modes:* Same as above.  
+
+  - **Merge**  
+    - *Type:* Merge node (Combine mode)  
+    - *Role:* Combines the two data streams from student list and responses by matching "Register No." and "Reg No" fields using OR logic.  
+    - *Configuration:* Uses advanced merge with matching fields specified.  
+    - *Connections:* Output feeds into the Code node.  
+    - *Failure modes:* Mismatch in field names or missing keys, empty inputs causing no merges.  
+
+  - **Code**  
+    - *Type:* Code (JavaScript)  
+    - *Role:* Core logic that normalizes registration numbers, identifies completed and pending students, computes summary stats, and generates an HTML dashboard with buttons linked to webhook URLs for reminders and acknowledgements.  
+    - *Key expressions:* Uses map and find to compare registrations, creates HTML with embedded JavaScript for button click handling.  
+    - *Connections:* Outputs JSON including summary arrays and HTML, feeding Respond to Webhook node.  
+    - *Failure modes:* Script errors, data format inconsistencies, empty inputs.  
+    - *Version notes:* Uses modern JS features; requires n8n version supporting Code node v2.  
+
+  - **Respond to Webhook**  
+    - *Type:* Respond to Webhook  
+    - *Role:* Sends HTTP response to requester with the generated HTML dashboard.  
+    - *Configuration:* Response code 200, Content-Type set to text/html, body set to the HTML generated by Code node via expression.  
+    - *Failure modes:* Response timeout, malformed HTML causing client rendering issues.  
+
+  - **Sticky Notes**  
+    - *Role:* Provide visual grouping and titles for workflow blocks; no functional role.  
+
+---
+
+#### 2.2 Sending Acknowledgement Emails
+
+- **Overview:**  
+  Triggered by a webhook, this block fetches student and form response data, identifies students who completed the form, prepares personalized thank-you email content, sends emails via Gmail, and responds with a confirmation HTML page.
+
+- **Nodes Involved:**  
+  - Webhook - send-acknowledgements (Webhook trigger)  
+  - Google Sheets - Student List (Reads students)  
+  - Google Sheets FormResponses (Reads responses)  
+  - Merge1 (Combines student and responses)  
+  - Code - Prepare Messages (Prepares email JSON per student)  
+  - Send a message (Gmail node sends emails)  
+  - Respond - Confirmation (Responds HTTP confirmation page)  
+  - Sticky Note1 (informational)
+
+- **Node Details:**
+
+  - **Webhook - send-acknowledgements**  
+    - *Type:* Webhook  
+    - *Role:* Listens for acknowledgement send requests at path "/send-acknowledgements".  
+    - *Connections:* Outputs to Google Sheets - Student List and Google Sheets FormResponses.  
+    - *Failure modes:* Same as other webhooks.  
+
+  - **Google Sheets - Student List**  
+    - *Type:* Google Sheets (Read)  
+    - *Role:* Reads student list data from the same spreadsheet as the dashboard block.  
+    - *Connections:* Outputs to Merge1.  
+    - *Failure modes:* Same as above.  
+
+  - **Google Sheets FormResponses**  
+    - *Type:* Google Sheets (Read)  
+    - *Role:* Reads form responses data from form response spreadsheet.  
+    - *Connections:* Outputs to Merge1.  
+    - *Failure modes:* Same as above.  
+
+  - **Merge1**  
+    - *Type:* Merge node  
+    - *Role:* Combines student and response data streams; no advanced matching configured, just passes through both inputs.  
+    - *Connections:* Outputs to Code - Prepare Messages.  
+    - *Failure modes:* Empty inputs may cause downstream code to have no data.  
+
+  - **Code - Prepare Messages**  
+    - *Type:* Code (JavaScript)  
+    - *Role:* Identifies completed students by matching normalized registration numbers, prepares personalized thank-you email subject and HTML body with placeholders replaced, outputs one JSON object per student with email details.  
+    - *Key expressions:* Uses normalization helper, placeholder replacement function, and array mapping.  
+    - *Edge cases:* No completed students results in a message JSON object with info message, preventing email sending.  
+    - *Failure modes:* Code errors, missing email addresses, empty student or response data.  
+
+  - **Send a message**  
+    - *Type:* Gmail node (Send Email)  
+    - *Role:* Sends personalized thank-you emails to each completed student using Gmail OAuth2 credentials.  
+    - *Configuration:* Uses dynamic expressions for recipient, subject, and message body.  
+    - *Failure modes:* Gmail API rate limits, auth failures, invalid email addresses.  
+
+  - **Respond - Confirmation**  
+    - *Type:* Respond to Webhook  
+    - *Role:* Returns a confirmation HTML page indicating acknowledgements sent, with a backlink to the dashboard webhook.  
+    - *Failure modes:* Response delivery errors.  
+
+  - **Sticky Note1**  
+    - *Role:* Visual label "Workflow 2: Send Acknowledgements".
+
+---
+
+#### 2.3 Sending Reminder Emails
+
+- **Overview:**  
+  This block is triggered by a webhook for sending reminders to students who have not submitted their registration form. It identifies pending students, prepares personalized reminder emails, sends them through Gmail, and responds with a confirmation page.
+
+- **Nodes Involved:**  
+  - Webhook - send-acknowledgements1 (Webhook trigger for reminders)  
+  - Google Sheets - Student List1 (Reads students)  
+  - Google Sheets - FormResponses (Reads responses)  
+  - Merge2 (Merges student and response data)  
+  - Code - Prepare Messages1 (Prepares reminders)  
+  - Send a message1 (Gmail sends reminder emails)  
+  - Respond - Confirmation1 (Sends confirmation HTML)  
+  - Sticky Note2 (informational)
+
+- **Node Details:**
+
+  - **Webhook - send-acknowledgements1**  
+    - *Type:* Webhook  
+    - *Role:* Listens at path "/send-reminder" for sending reminder requests.  
+    - *Connections:* Outputs to Google Sheets - Student List1 and Google Sheets - FormResponses.  
+    - *Failure modes:* Same as other webhooks.  
+
+  - **Google Sheets - Student List1**  
+    - *Type:* Google Sheets (Read)  
+    - *Role:* Reads student list from the same spreadsheet as above (appears duplicated for separation).  
+    - *Connections:* Outputs to Merge2.  
+    - *Failure modes:* Same as above.  
+
+  - **Google Sheets - FormResponses**  
+    - *Type:* Google Sheets (Read)  
+    - *Role:* Reads form responses data.  
+    - *Connections:* Outputs to Merge2.  
+    - *Failure modes:* Same as above.  
+
+  - **Merge2**  
+    - *Type:* Merge node  
+    - *Role:* Combines both inputs.  
+    - *Connections:* Outputs to Code - Prepare Messages1.  
+    - *Failure modes:* Empty inputs cause no reminders to be prepared.  
+
+  - **Code - Prepare Messages1**  
+    - *Type:* Code (JavaScript)  
+    - *Role:* Identifies students who have not submitted by comparing normalized registration numbers, prepares personalized reminder email content, outputs one JSON per pending student.  
+    - *Key expressions:* Normalization, placeholder replacement, early return if no pending students.  
+    - *Failure modes:* Missing contact info, no pending students.  
+
+  - **Send a message1**  
+    - *Type:* Gmail node (Send Email)  
+    - *Role:* Sends reminder emails to pending students.  
+    - *Configuration:* Uses Gmail OAuth2 credentials, dynamic expressions for recipients and content.  
+    - *Failure modes:* Gmail API limits, invalid emails.  
+
+  - **Respond - Confirmation1**  
+    - *Type:* Respond to Webhook  
+    - *Role:* Returns confirmation HTML indicating reminders sent, with link back to dashboard.  
+    - *Failure modes:* Response errors.  
+
+  - **Sticky Note2**  
+    - *Role:* Visual label "Workflow 3: Send Reminders".
+
+---
+
+### 3. Summary Table
+
+| Node Name                     | Node Type             | Functional Role                    | Input Node(s)                            | Output Node(s)                 | Sticky Note                                          |
+|-------------------------------|-----------------------|----------------------------------|----------------------------------------|-------------------------------|-----------------------------------------------------|
+| Webhook1                      | Webhook               | Entry point for dashboard         | -                                      | Google Sheets, Google Sheets1  | Gracewell Automated Registration Tracker Suite      |
+| Google Sheets                 | Google Sheets         | Read Student List for dashboard   | Webhook1                               | Merge                         | Gracewell Automated Registration Tracker Suite      |
+| Google Sheets1                | Google Sheets         | Read Form Responses for dashboard | Webhook1                               | Merge                         | Gracewell Automated Registration Tracker Suite      |
+| Merge                        | Merge                 | Combine student and response data | Google Sheets, Google Sheets1          | Code                         | Gracewell Automated Registration Tracker Suite      |
+| Code                         | Code                  | Generate dashboard HTML and stats | Merge                                 | Respond to Webhook            | Gracewell Automated Registration Tracker Suite      |
+| Respond to Webhook            | Respond to Webhook    | Return dashboard HTML             | Code                                   | -                            | Gracewell Automated Registration Tracker Suite      |
+| Webhook - send-acknowledgements | Webhook               | Trigger sending acknowledgements  | -                                      | Google Sheets - Student List, Google Sheets FormResponses | Workflow 2: Send Acknowledgements                    |
+| Google Sheets - Student List  | Google Sheets         | Read student list for acknowledgements | Webhook - send-acknowledgements        | Merge1                       | Workflow 2: Send Acknowledgements                    |
+| Google Sheets FormResponses   | Google Sheets         | Read form responses for acknowledgements | Webhook - send-acknowledgements        | Merge1                       | Workflow 2: Send Acknowledgements                    |
+| Merge1                       | Merge                 | Combine student and response data | Google Sheets - Student List, Google Sheets FormResponses | Code - Prepare Messages       | Workflow 2: Send Acknowledgements                    |
+| Code - Prepare Messages       | Code                  | Prepare thank-you email content   | Merge1                                 | Send a message               | Workflow 2: Send Acknowledgements                    |
+| Send a message                | Gmail                 | Send acknowledgement emails       | Code - Prepare Messages                 | Respond - Confirmation        | Workflow 2: Send Acknowledgements                    |
+| Respond - Confirmation        | Respond to Webhook    | Return confirmation page          | Send a message                         | -                            | Workflow 2: Send Acknowledgements                    |
+| Webhook - send-acknowledgements1 | Webhook               | Trigger sending reminders          | -                                      | Google Sheets - Student List1, Google Sheets - FormResponses | Workflow 3: Send Reminders                           |
+| Google Sheets - Student List1 | Google Sheets         | Read student list for reminders   | Webhook - send-acknowledgements1       | Merge2                       | Workflow 3: Send Reminders                           |
+| Google Sheets - FormResponses | Google Sheets         | Read form responses for reminders | Webhook - send-acknowledgements1       | Merge2                       | Workflow 3: Send Reminders                           |
+| Merge2                       | Merge                 | Combine student and response data | Google Sheets - Student List1, Google Sheets - FormResponses | Code - Prepare Messages1      | Workflow 3: Send Reminders                           |
+| Code - Prepare Messages1      | Code                  | Prepare reminder email content    | Merge2                                 | Send a message1              | Workflow 3: Send Reminders                           |
+| Send a message1               | Gmail                 | Send reminder emails              | Code - Prepare Messages1                | Respond - Confirmation1       | Workflow 3: Send Reminders                           |
+| Respond - Confirmation1       | Respond to Webhook    | Return confirmation page          | Send a message1                        | -                            | Workflow 3: Send Reminders                           |
+| Sticky Note                  | Sticky Note           | Visual label for entire workflow  | -                                      | -                            | Gracewell Automated Registration Tracker Suite      |
+| Sticky Note1                 | Sticky Note           | Visual label for acknowledgements | -                                      | -                            | Workflow 2: Send Acknowledgements                    |
+| Sticky Note2                 | Sticky Note           | Visual label for reminders         | -                                      | -                            | Workflow 3: Send Reminders                           |
+
+---
+
+### 4. Reproducing the Workflow from Scratch
+
+1. **Create Webhook1 Node**  
+   - Type: Webhook  
+   - Path: Unique string (e.g., "2235781f-4371-4f6e-8767-41c352ed171f")  
+   - Response Mode: responseNode  
+   - No authentication (or configure as needed).
+
+2. **Create Google Sheets Node (Student List)**  
+   - Type: Google Sheets  
+   - Operation: Read rows  
+   - Document ID: `1-i55cyu2DKZ_alSlR3Bd7abHn_EfvTpg73hv2y3zb4o`  
+   - Sheet Name: `Sheet1` (gid=0)  
+   - Credentials: Google Sheets OAuth2 configured with access to this spreadsheet.
+
+3. **Create Google Sheets Node (Form Responses)**  
+   - Type: Google Sheets  
+   - Operation: Read rows  
+   - Document ID: `10eIZzrzgRy8PKfyhhVc8eG8lFoAxEqE0h-IOnqHwdVE`  
+   - Sheet Name: `Form Responses 1` (gid=1113734691)  
+   - Credentials: Same Google Sheets OAuth2.
+
+4. **Connect Webhook1 outputs to both Google Sheets nodes.**
+
+5. **Create Merge Node**  
+   - Mode: Combine  
+   - Advanced Mode: Enabled  
+   - Merge By Fields: Map "Register No." (from Student List) to "Reg No" (from Responses)  
+   - Connect outputs from both Google Sheets nodes to this Merge node.
+
+6. **Create Code Node**  
+   - Paste the provided JavaScript: Normalizes registration numbers, compares submission status, builds summary, and generates HTML dashboard including buttons linked to webhook URLs for sending reminders and acknowledgements.  
+   - Connect output of Merge node to this Code node.
+
+7. **Create Respond to Webhook Node**  
+   - Response Code: 200  
+   - Response Headers: Content-Type = text/html  
+   - Response Body: Use expression `={{ $json["html"] }}`  
+   - Connect output of Code node to this node.
+
+8. **Create Webhook Node for Acknowledgements**  
+   - Type: Webhook  
+   - Path: "send-acknowledgements"  
+   - Response Mode: responseNode  
+
+9. **Create Google Sheets Nodes for Acknowledgements**  
+   - Student List node: Same config as step 2.  
+   - Form Responses node: Same config as step 3.  
+
+10. **Connect Webhook - send-acknowledgements outputs to these two Google Sheets nodes.**
+
+11. **Create Merge1 Node**  
+    - Default mode (no advanced merge needed).  
+    - Connect both Google Sheets nodes outputs to Merge1.
+
+12. **Create Code - Prepare Messages Node**  
+    - Paste JavaScript that identifies completed students, prepares personalized thank-you email JSON objects with subject and HTML body.  
+    - Connect Merge1 output to this node.
+
+13. **Create Gmail Node (Send a message)**  
+    - Operation: Send Email  
+    - To: Expression `={{ $json["Email Address"] }}`  
+    - Subject: Expression `={{ $json.subject }}`  
+    - Message: Expression `={{ $json.htmlBody }}`  
+    - Credentials: Gmail OAuth2 account with send permissions.  
+    - Connect Code - Prepare Messages output to this node.
+
+14. **Create Respond - Confirmation Node**  
+    - Response Code: 200  
+    - Content-Type: text/html  
+    - Response Body: Static HTML confirming acknowledgements sent with link back to dashboard webhook.  
+    - Connect Send a message output to this node.
+
+15. **Create Webhook Node for Reminders**  
+    - Type: Webhook  
+    - Path: "send-reminder"  
+    - Response Mode: responseNode  
+
+16. **Create Google Sheets Nodes for Reminders**  
+    - Student List1: Same as step 2 (can duplicate for separation).  
+    - Form Responses: Same as step 3.
+
+17. **Connect Webhook - send-reminder outputs to these two Google Sheets nodes.**
+
+18. **Create Merge2 Node**  
+    - Default mode.  
+    - Connect both Google Sheets nodes outputs.
+
+19. **Create Code - Prepare Messages1 Node**  
+    - Paste JavaScript that identifies pending students, prepares personalized reminder email JSON objects.  
+    - Connect Merge2 output to this node.
+
+20. **Create Gmail Node (Send a message1)**  
+    - Same setup as step 13, configured to send reminder emails.  
+    - Connect Code - Prepare Messages1 output to this node.
+
+21. **Create Respond - Confirmation1 Node**  
+    - Similar to step 14, confirms reminders sent.  
+    - Connect Send a message1 output to this node.
+
+22. **(Optional) Add Sticky Note nodes for visual grouping and labeling in the editor.**
+
+---
+
+### 5. General Notes & Resources
+
+| Note Content                                                                                          | Context or Link                                            |
+|-----------------------------------------------------------------------------------------------------|------------------------------------------------------------|
+| Dashboard HTML includes SweetAlert2 library for confirmation dialogs with buttons triggering webhooks | https://cdn.jsdelivr.net/npm/sweetalert2@11                |
+| Workflow author credit: Dr. Jeffin Gracewell                                                        | Embedded in Code node comments                              |
+| Webhook URLs embedded in dashboard buttons should be updated to the actual deployed n8n instance URL | Replace `https://n8n.srv765546.hstgr.cloud` accordingly    |
+| Ensure Google Sheets and Gmail OAuth2 credentials have proper scopes: Sheets read-only and Gmail send | n8n OAuth2 credential setup                                |
+| Form responses use "Reg No" as key field; student list uses "Register No." — normalization is key    | Data consistency critical                                   |
+| Use modern n8n version supporting Code node version 2+ and Gmail OAuth2 nodes                       | n8n v0.188+ recommended                                    |
+
+---
+
+This completes the detailed structured reference documentation for the "Real-time Registration Form Tracking with Google Sheets and Gmail Notifications" workflow. It enables deep understanding, replication, and maintenance of the workflow for advanced users and automation agents.

@@ -1,0 +1,288 @@
+🧠 Build AI Agents with Think-Plan-Act Architecture Using Llama-4 Reasoning
+
+https://n8nworkflows.xyz/workflows/---build-ai-agents-with-think-plan-act-architecture-using-llama-4-reasoning-3489
+
+
+# 🧠 Build AI Agents with Think-Plan-Act Architecture Using Llama-4 Reasoning
+
+### 1. Workflow Overview
+
+This n8n workflow implements an advanced AI agent architecture based on the "Think → Plan → Act" paradigm using Llama-4 reasoning via OpenRouter or similar LLM providers. It is designed to enhance automation flows by enabling them to reason about tasks, generate structured plans, and execute actions intelligently with full AI-driven decision-making.
+
+The workflow is modular and divided into two main logical blocks:
+
+- **1.1 Think Mode:** Receives input tasks, performs deep reasoning to analyze goals, subgoals, tools, and assumptions, and outputs structured JSON plans.
+- **1.2 Act Mode:** Takes the structured plans from Think Mode and executes the planned subgoals step-by-step using integrated tools and AI agents, returning structured outputs for subsequent automation steps.
+
+Additional supporting nodes provide configuration, webhook entry points, and output parsing with fallback mechanisms to ensure robustness.
+
+---
+
+### 2. Block-by-Block Analysis
+
+#### 2.1 Think Mode
+
+- **Overview:**  
+  This block receives the initial input (via webhook), configures the AI agent with constraints and tool descriptions, and uses LLM-powered agents to generate a structured reasoning output. It produces a JSON plan detailing goals, subgoals, and tool usage before passing it to the Act block.
+
+- **Nodes Involved:**  
+  - `start-thinking` (Webhook)  
+  - `Config` (Code)  
+  - `Think` (Langchain Agent)  
+  - `OpenRouter Chat Model4` (LLM Model)  
+  - `OpenRouter Chat Model5` (LLM Model)  
+  - `Thinking output parser` (Autofixing Output Parser)  
+  - `Structured Output Parser1` (Structured Output Parser)  
+  - `No Operation, do nothing` (NoOp)  
+
+- **Node Details:**
+
+  - **start-thinking**  
+    - Type: Webhook (Entry point)  
+    - Role: Receives external input to trigger the Think Mode  
+    - Config: Default webhook with unique ID  
+    - Input: External HTTP request  
+    - Output: Passes input to `Config` node  
+    - Edge cases: Missing or malformed webhook requests may cause failures.
+
+  - **Config**  
+    - Type: Code node  
+    - Role: Defines AI agent configuration including context, constraints, and tools  
+    - Key Config: Contains JSON object with THINK mode settings (empty context by default, example constraints, and tools array)  
+    - Input: Receives webhook input  
+    - Output: Passes configuration and input to `Think` node  
+    - Edge cases: Invalid JSON or misconfiguration can cause agent failures.
+
+  - **Think**  
+    - Type: Langchain Agent  
+    - Role: Core reasoning agent that generates the plan based on input and config  
+    - Config: Uses retry on fail, always outputs data  
+    - Input: Receives config and input JSON  
+    - Output: Passes reasoning output to `Act` node  
+    - Edge cases: LLM API errors, timeouts, or malformed responses.
+
+  - **OpenRouter Chat Model4 & OpenRouter Chat Model5**  
+    - Type: LLM Chat Model nodes connected to the Think agent  
+    - Role: Provide LLM responses for reasoning and output parsing  
+    - Config: Use OpenRouter credentials (or other LLM providers)  
+    - Edge cases: API key issues, rate limits, or network errors.
+
+  - **Thinking output parser**  
+    - Type: Autofixing Output Parser  
+    - Role: Parses and corrects AI output to structured JSON  
+    - Input: LLM raw output  
+    - Output: Cleaned structured JSON for downstream use  
+    - Edge cases: Parsing failures, incomplete JSON outputs.
+
+  - **Structured Output Parser1**  
+    - Type: Structured Output Parser  
+    - Role: Validates output against a JSON schema template  
+    - Notes: Contains JSON schema template for expected output format  
+    - Edge cases: Schema validation failures.
+
+  - **No Operation, do nothing**  
+    - Type: NoOp  
+    - Role: Placeholder node to connect with further workflows or nodes  
+    - Notes: Indicates where to connect next steps after Act block  
+    - Edge cases: None (pass-through).
+
+---
+
+#### 2.2 Act Mode
+
+- **Overview:**  
+  This block receives the structured plan from Think Mode and executes the planned subgoals using AI agents and integrated tools. It outputs structured JSON results representing the actions taken and their outcomes.
+
+- **Nodes Involved:**  
+  - `Act` (Langchain Agent)  
+  - `OpenRouter Chat Model` (LLM Model)  
+  - `OpenRouter Chat Model1` (LLM Model)  
+  - `Task Output Parser` (Autofixing Output Parser)  
+  - `Structured Output Parser` (Structured Output Parser)  
+  - `No Operation, do nothing` (NoOp)  
+
+- **Node Details:**
+
+  - **Act**  
+    - Type: Langchain Agent  
+    - Role: Executes the subgoals generated by Think Mode intelligently  
+    - Config: Retry on fail, always outputs data, does not execute once (can loop)  
+    - Input: Receives plan JSON from Think node  
+    - Output: Passes execution results to downstream nodes or NoOp  
+    - Edge cases: API failures, execution errors, tool integration issues.
+
+  - **OpenRouter Chat Model & OpenRouter Chat Model1**  
+    - Type: LLM Chat Model nodes connected to Act agent  
+    - Role: Provide AI responses for task execution and output parsing  
+    - Config: Use OpenRouter or other LLM credentials  
+    - Edge cases: API key issues, rate limits, network errors.
+
+  - **Task Output Parser**  
+    - Type: Autofixing Output Parser  
+    - Role: Parses and corrects AI execution output to structured JSON  
+    - Input: Raw LLM output  
+    - Output: Cleaned JSON results for further processing  
+    - Edge cases: Parsing failures, incomplete or malformed outputs.
+
+  - **Structured Output Parser**  
+    - Type: Structured Output Parser  
+    - Role: Validates execution output against JSON schema  
+    - Edge cases: Schema validation failures.
+
+  - **No Operation, do nothing**  
+    - Type: NoOp  
+    - Role: Placeholder for connecting to further workflow steps  
+    - Edge cases: None.
+
+---
+
+#### 2.3 Demo and Supporting Nodes
+
+- **Overview:**  
+  Additional nodes provide a demonstration webhook (`get-weather`) and a secondary Think-Act pair (`Think1` and `Act1`) for example usage, plus configuration nodes (`Config1`) and output parsers (`Thinking output parser1`, `Task Output Parser1`, etc.) mirroring the main logic.
+
+- **Nodes Involved:**  
+  - `get-weather` (Webhook)  
+  - `Config1` (Code)  
+  - `Think1` (Langchain Agent)  
+  - `Act1` (Langchain Agent)  
+  - `OpenRouter Chat Model2`, `OpenRouter Chat Model3`, `OpenRouter Chat Model6`, `OpenRouter Chat Model7` (LLM Models)  
+  - `Thinking output parser1`, `Task Output Parser1`, `Structured Output Parser2`, `Structured Output Parser3` (Output Parsers)  
+  - `Code` (Code node for post-processing)  
+
+- **Node Details:**  
+  These nodes replicate the Think-Act architecture with slightly different positioning and webhook entry points to demonstrate usage with a weather-related example. They share the same configuration and parsing logic but are isolated for modular testing or extension.
+
+---
+
+### 3. Summary Table
+
+| Node Name               | Node Type                          | Functional Role                       | Input Node(s)            | Output Node(s)           | Sticky Note                         |
+|-------------------------|----------------------------------|-------------------------------------|--------------------------|--------------------------|-----------------------------------|
+| start-thinking          | Webhook                          | Entry point for Think Mode           |                          | Config                   |                                   |
+| Config                  | Code                             | AI agent configuration for Think    | start-thinking           | Think                    |                                   |
+| Think                   | Langchain Agent                  | Generates reasoning and plan         | Config                   | Act                      |                                   |
+| OpenRouter Chat Model4  | LLM Chat Model                   | Provides LLM responses for Think     | Think                    | Thinking output parser    |                                   |
+| OpenRouter Chat Model5  | LLM Chat Model                   | Provides LLM responses for parsing   | Thinking output parser    | Think                    |                                   |
+| Thinking output parser  | Autofixing Output Parser         | Parses Think output to structured JSON | OpenRouter Chat Model5  | Think                    |                                   |
+| Structured Output Parser1 | Structured Output Parser       | Validates Think output schema        | Thinking output parser    | Task Output Parser       | "This is the JSON Schema template for the output." |
+| Task Output Parser      | Autofixing Output Parser         | Parses Act output                    | OpenRouter Chat Model1    | Act                      |                                   |
+| OpenRouter Chat Model   | LLM Chat Model                   | Provides LLM responses for Act       | Act                      | Task Output Parser       |                                   |
+| OpenRouter Chat Model1  | LLM Chat Model                   | Provides LLM responses for parsing   | Task Output Parser        | Act                      |                                   |
+| Structured Output Parser | Structured Output Parser        | Validates Act output schema          | Task Output Parser        | No Operation, do nothing |                                   |
+| No Operation, do nothing | NoOp                            | Placeholder for next steps           | Act                      |                          | "You should connect with the rest of your flow." |
+| get-weather             | Webhook                          | Demo entry point                     |                          | Config1                  |                                   |
+| Config1                 | Code                             | AI agent configuration for demo Think | get-weather             | Think1                   |                                   |
+| Think1                  | Langchain Agent                  | Demo reasoning and plan generation   | Config1                  | Act1                     |                                   |
+| Act1                    | Langchain Agent                  | Demo execution of plan                | Think1                   | Code                     |                                   |
+| OpenRouter Chat Model2  | LLM Chat Model                   | Provides LLM responses for demo Act  | Act1                     | Task Output Parser1      |                                   |
+| OpenRouter Chat Model3  | LLM Chat Model                   | Provides LLM responses for parsing   | Task Output Parser1      | Act1                     |                                   |
+| Task Output Parser1     | Autofixing Output Parser         | Parses demo Act output                | OpenRouter Chat Model3    | Act1                     |                                   |
+| Structured Output Parser2 | Structured Output Parser       | Validates demo Act output schema     | Task Output Parser1      |                           |                                   |
+| Thinking output parser1 | Autofixing Output Parser         | Parses demo Think output              | OpenRouter Chat Model7    | Think1                   |                                   |
+| Structured Output Parser3 | Structured Output Parser       | Validates demo Think output schema   | Thinking output parser1  | Task Output Parser1      | "This is the JSON Schema template for the output." |
+| Code                    | Code                             | Post-processing after Act1            | Act1                     |                          |                                   |
+
+---
+
+### 4. Reproducing the Workflow from Scratch
+
+1. **Create Webhook Node `start-thinking`:**  
+   - Type: Webhook  
+   - Purpose: Entry point for Think Mode  
+   - Configure unique webhook URL.
+
+2. **Create Code Node `Config`:**  
+   - Type: Code  
+   - Purpose: Define AI agent configuration for THINK mode  
+   - Paste default config JSON with THINK context, constraints, and tools array.  
+   - Connect `start-thinking` output to `Config` input.
+
+3. **Create Langchain Agent Node `Think`:**  
+   - Type: Langchain Agent  
+   - Purpose: Generate reasoning and plan from input and config  
+   - Enable "Retry on Fail" and "Always Output Data"  
+   - Connect `Config` output to `Think` input.
+
+4. **Create LLM Chat Model Nodes `OpenRouter Chat Model4` and `OpenRouter Chat Model5`:**  
+   - Type: Langchain LLM Chat Model  
+   - Purpose: Provide LLM responses for Think agent and output parsing  
+   - Configure credentials (OpenRouter API key or alternative)  
+   - Connect these nodes as AI language models for `Think` and `Thinking output parser`.
+
+5. **Create Output Parsers `Thinking output parser` and `Structured Output Parser1`:**  
+   - Types: Autofixing Output Parser and Structured Output Parser  
+   - Purpose: Parse and validate Think agent output  
+   - Use JSON schema template for structured output in `Structured Output Parser1`  
+   - Connect LLM outputs to parsers accordingly.
+
+6. **Create Langchain Agent Node `Act`:**  
+   - Type: Langchain Agent  
+   - Purpose: Execute subgoals from Think output  
+   - Enable "Retry on Fail" and "Always Output Data"  
+   - Connect `Think` output to `Act` input.
+
+7. **Create LLM Chat Model Nodes `OpenRouter Chat Model` and `OpenRouter Chat Model1`:**  
+   - Type: Langchain LLM Chat Model  
+   - Purpose: Provide LLM responses for Act agent and output parsing  
+   - Configure credentials  
+   - Connect to `Act` and `Task Output Parser`.
+
+8. **Create Output Parsers `Task Output Parser` and `Structured Output Parser`:**  
+   - Types: Autofixing Output Parser and Structured Output Parser  
+   - Purpose: Parse and validate Act agent output  
+   - Connect LLM outputs to parsers accordingly.
+
+9. **Create No Operation Node `No Operation, do nothing`:**  
+   - Type: NoOp  
+   - Purpose: Placeholder for connecting further workflow steps  
+   - Connect `Act` output to this node.
+
+10. **(Optional) Create Demo Webhook `get-weather`:**  
+    - Type: Webhook  
+    - Purpose: Demo entry point for weather example  
+    - Configure webhook URL.
+
+11. **(Optional) Create Demo Config Node `Config1`:**  
+    - Type: Code  
+    - Purpose: Demo AI agent configuration  
+    - Connect `get-weather` output to `Config1`.
+
+12. **(Optional) Create Demo Think and Act Nodes `Think1` and `Act1`:**  
+    - Same configuration as main Think and Act nodes  
+    - Connect `Config1` to `Think1`, then `Think1` to `Act1`.
+
+13. **(Optional) Create corresponding LLM Chat Models and Output Parsers for demo nodes:**  
+    - `OpenRouter Chat Model2`, `OpenRouter Chat Model3`, `OpenRouter Chat Model6`, `OpenRouter Chat Model7`  
+    - `Thinking output parser1`, `Task Output Parser1`, `Structured Output Parser2`, `Structured Output Parser3`
+
+14. **(Optional) Create Code Node `Code`:**  
+    - For any post-processing after demo Act node  
+    - Connect `Act1` output to `Code`.
+
+15. **Connect all nodes respecting the input-output relationships as described.**
+
+16. **Configure credentials for all LLM Chat Model nodes:**  
+    - Use OpenRouter API key or alternative LLM provider credentials.
+
+17. **Test the workflow by triggering the webhook(s) with sample input JSON.**
+
+---
+
+### 5. General Notes & Resources
+
+| Note Content                                                                                                                                                                                                 | Context or Link                                                                                         |
+|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------|
+| This workflow is inspired by the Hugging Face agent architecture and implements a modular Think-Plan-Act AI agent framework for n8n.                                                                         | Description section                                                                                     |
+| Default AI agent configuration can be customized in the `Config` node to add context, constraints, and tools for reasoning.                                                                                  | Configuration code snippet in description                                                             |
+| The workflow includes built-in parsers: structured JSON parser for reliable outputs and natural language fallback parsers to ensure robustness.                                                              | Description and node details                                                                            |
+| Plug & Play design allows integration into any existing n8n flow, enabling intelligent automation with minimal setup.                                                                                        | Description                                                                                             |
+| Requires OpenRouter API key or compatible LLM provider credentials for operation.                                                                                                                             | Description and node details                                                                            |
+| The demo webhook `get-weather` provides an example of how to extend and test the agent with real-world tasks.                                                                                                | Demo nodes section                                                                                      |
+| Sticky notes in the workflow provide additional contextual information and guidance for users.                                                                                                                | Sticky notes duplicated in node descriptions                                                          |
+| For more information on Langchain nodes and output parsers, refer to n8n documentation: https://docs.n8n.io/nodes/                                                                                           | External resource                                                                                       |
+| The workflow uses autofixing output parsers to handle imperfect AI outputs, improving reliability in production environments.                                                                                | Node descriptions                                                                                       |
+
+---
+
+This document fully describes the "🧠 Build AI Agents with Think-Plan-Act Architecture Using Llama-4 Reasoning" n8n workflow, enabling advanced users and AI agents to understand, reproduce, and extend the workflow confidently.
