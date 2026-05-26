@@ -48,7 +48,7 @@ Each workflow is isolated in its own folder to facilitate navigation, versioning
 
 ## 📝 License
 
-This repository archives public workflows from [n8n.io/workflows](https://n8n.io/workflows). Each workflow retains its original license. Refer to individual metadata for more information.
+This repository archives few public workflows from [n8n.io/workflows](https://n8n.io/workflows). Each workflow retains its original license. Refer to individual metadata for more information.
 
 The archiving code and repository structure are licensed under [MIT](LICENSE).
 
